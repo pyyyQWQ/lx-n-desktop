@@ -84,8 +84,15 @@ export const createWindow = () => {
   setSesProxy(ses, proxy?.host, proxy?.port)
 
   /**
-   * Initial window options
+   * 应用图标：显式设置窗口图标，确保开发模式（未打包）下任务栏/标题栏也显示新图标。
+   * 打包后 Windows 主要由 exe 内嵌图标决定（resources/icons/icon.ico），此处作为补充。
+   * 说明：原代码使用的是 `global.__static`，本项目中并未定义该变量，因此改用 `global.staticPath`，
+   * 图标文件位于 `src/static/icons/`（构建后复制到 `dist/static/icons/`）。
    */
+  const getAppIconPath = () => {
+    return path.join(global.staticPath, 'icons', isWin ? 'icon.ico' : '512x512.png')
+  }
+
   const options: Electron.BrowserWindowConstructorOptions = {
     height: windowSizeInfo.height,
     useContentSize: true,
@@ -94,7 +101,7 @@ export const createWindow = () => {
     transparent: !global.envParams.cmdParams.dt,
     hasShadow: global.envParams.cmdParams.dt,
     // enableRemoteModule: false,
-    // icon: join(global.__static, isWin ? 'icons/256x256.ico' : 'icons/512x512.png'),
+    icon: getAppIconPath(),
     resizable: false,
     maximizable: false,
     fullscreenable: true,

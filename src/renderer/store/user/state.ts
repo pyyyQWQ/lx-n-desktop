@@ -49,6 +49,24 @@ export const wyPlaylists = shallowReactive<Array<{
   playCount?: number
 }>>([])
 
+/**
+ * 每日推荐歌曲列表（真实接口结果缓存）。切换账号 / 退出时清空。
+ */
+export const wyDailyRecSongs = shallowReactive<LX.Music.MusicInfo[]>([])
+
+/**
+ * 每日推荐歌单列表（真实接口结果缓存）。切换账号 / 退出时清空。
+ */
+export const wyDailyRecPlaylists = shallowReactive<Array<{
+  id: string
+  name: string
+  trackCount: number
+  coverImgUrl: string
+  creator?: string
+  playCount?: number
+  description?: string
+}>>([])
+
 export const hasWyCookie = () => !!(appSetting['common.wy_cookie'] || '')
 
 export interface WyUserState {

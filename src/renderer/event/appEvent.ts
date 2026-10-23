@@ -168,6 +168,11 @@ export class AppEvent extends Event {
     this.emit('wyLikedListChanged')
   }
 
+  // 手动「检查更新」：强制重新获取最新版本信息并弹出更新窗口（仅提示 + 跳转 GitHub Releases，不自动下载）
+  checkForUpdate() {
+    this.emit('checkForUpdate')
+  }
+
   // 下载列表改变事件
   downloadListUpdate() {
     this.emit('downloadListUpdate')

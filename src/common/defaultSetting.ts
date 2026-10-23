@@ -150,6 +150,15 @@ const defaultSetting: LX.AppSetting = {
   'sync.server.maxSsnapshotNum': 5,
   'sync.client.host': '',
 
+  // WebDAV 数据同步（默认关闭，由用户显式配置后启用）
+  'sync.webdav.enable': false,
+  'sync.webdav.syncLists': false,
+  'sync.webdav.url': '',
+  'sync.webdav.username': '',
+  'sync.webdav.password': '',
+  'sync.webdav.path': '/LX_Music/',
+  'sync.webdav.lastSyncTimeLists': 0,
+
   'openAPI.enable': false,
   'openAPI.port': '23330',
   'openAPI.bindLan': false,

@@ -50,9 +50,41 @@ export const windowSizeList: WindowSize[] = [
   },
 ]
 
-// 独立发布仓库尚未绑定前，禁止检查上游更新，避免把 LX Music 的版本误判为本应用更新。
-// 确认 GitHub 仓库后，需同时更新 package.json 的 author/repository、build-pack.js 的 publish 配置，再将其改为 true。
-export const updateFeedEnabled = false
+// 独立版 LX-N 的项目地址（发布、更新与反馈均指向此处，不再沿用原版 lx-music-desktop）。
+// 详见 src/renderer/utils/update.js 与 build-config/build-pack.js 的 publish 配置。
+export const LX_N_REPO_OWNER = 'pyyyQWQ'
+export const LX_N_REPO_NAME = 'lx-n-desktop'
+export const LX_N_REPO_BRANCH = 'main'
+export const LX_N_HOMEPAGE = `https://github.com/${LX_N_REPO_OWNER}/${LX_N_REPO_NAME}`
+export const LX_N_RELEASES = `${LX_N_HOMEPAGE}/releases`
+export const LX_N_ISSUES = `${LX_N_HOMEPAGE}/issues`
+
+/**
+ * 是否启用「检查新版本 → 跳转独立版 GitHub Releases 手动下载」的更新提示。
+ *
+ * 启用后，应用启动/手动检查时会读取仓库 `main` 分支的 `publish/version.json`，
+ * 若其 version 高于本地当前版本（package.json 的 version），则弹窗「发现新版本」
+ * 并提供跳转到 LX_N_RELEASES 的手动下载入口；不下载、不覆盖安装。
+ *
+ * = 启用前提（发布流程中必须遵守） =
+ * 1. 仓库 `main` 分支的 `publish/version.json` 的 version 必须与当前最新 Release 一致：
+ *    否则版本不一致会给用户错误提示（例如沿用了原版 2.12.6 会让 1.0.0 用户被误报）。
+ *    发布新版本时，把该文件的 version 改成新版本号并推送。
+ * 2. 本地 package.json 的 version 与线上实际构建/对外发布版本保持一致。
+ *
+ * 当前状态：true（已开启「检查 → 提示 → 跳 Releases 手动下载」）。
+ */
+export const updateFeedEnabled = true
+
+/**
+ * 更新源地址清单（仅保留 github 源站 raw.githubusercontent.com）。
+ * 刻意不加入 jsdelivr 等 CDN：这些 CDN 可能缓存旧的原版内容（如 2.12.6），
+ * 会导致无法访问 GitHub 的用户被错误提示为原版版本。宁可获取失败，也不显示原版信息。
+ * 供 src/renderer/utils/update.js 使用；独立成纯函数以便测试断言。
+ */
+export const getUpdateFeedAddress = () => [
+  [`https://raw.githubusercontent.com/${LX_N_REPO_OWNER}/${LX_N_REPO_NAME}/${LX_N_REPO_BRANCH}/publish/version.json`, 'direct'],
+]
 
 export const navigationUrlWhiteList: RegExp[] = [
   // 阶段 B2：允许网易云官方域名的网页登录导航（含登录主站与子域）。

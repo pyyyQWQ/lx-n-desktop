@@ -670,6 +670,41 @@ declare global {
        */
       'sync.client.host': string
 
+      /**
+       * 是否启用 WebDAV 数据同步
+       */
+      'sync.webdav.enable': boolean
+
+      /**
+       * 启动后是否自动同步歌单
+       */
+      'sync.webdav.syncLists': boolean
+
+      /**
+       * WebDAV 服务器地址（如 https://dav.example.com/dav）
+       */
+      'sync.webdav.url': string
+
+      /**
+       * WebDAV 用户名
+       */
+      'sync.webdav.username': string
+
+      /**
+       * WebDAV 密码（明文保存于本地，绝不上传云端）
+       */
+      'sync.webdav.password': string
+
+      /**
+       * 远端存放同步文件的目录（默认 /LX_Music/）
+       */
+      'sync.webdav.path': string
+
+      /**
+       * 最近一次歌单同步成功的远端时间戳（0 表示本设备尚未同步过）
+       */
+      'sync.webdav.lastSyncTimeLists': number
+
 
       /**
        * 是否启用开放API服务

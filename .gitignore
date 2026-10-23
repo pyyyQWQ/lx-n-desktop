@@ -77,3 +77,4 @@ src/**/*-internal.js
 pnpm-workspace.yaml
 start-dev.bat
 check-userdata.bat
+启动开发版.bat

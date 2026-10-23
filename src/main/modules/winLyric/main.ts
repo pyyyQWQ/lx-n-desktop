@@ -122,7 +122,9 @@ export const createWindow = () => {
     transparent: true,
     hasShadow: false,
     // enableRemoteModule: false,
-    // icon: join(global.__static, isWin ? 'icons/256x256.ico' : 'icons/512x512.png'),
+    // 显式设置窗口图标（开发模式下任务栏/Alt+Tab 也显示新图标）。
+    // 原代码用的 global.__static 在本项目未定义，改用 global.staticPath。
+    icon: path.join(global.staticPath, 'icons', isWin ? 'icon.ico' : '512x512.png'),
     resizable: isWin,
     minimizable: false,
     maximizable: false,

@@ -1,22 +1,15 @@
 import { httpGet } from './request'
 import pkg from '../../../package.json'
-import { updateFeedEnabled } from '@common/config'
+// 更新源地址清单在 @common/config 的 getUpdateFeedAddress() 中定义（便于测试断言）。
+import { updateFeedEnabled, getUpdateFeedAddress } from '@common/config'
 
 // TODO add Notice
 
-const author = pkg.author.name
-const name = pkg.name
-
-const address = [
-  [`https://raw.githubusercontent.com/${author}/${name}/master/publish/version.json`, 'direct'],
-  ['https://registry.npmjs.org/lx-music-desktop-version-info/latest', 'npm'],
-  [`https://cdn.jsdelivr.net/gh/${author}/${name}/publish/version.json`, 'direct'],
-  [`https://fastly.jsdelivr.net/gh/${author}/${name}/publish/version.json`, 'direct'],
-  [`https://gcore.jsdelivr.net/gh/${author}/${name}/publish/version.json`, 'direct'],
-  ['https://registry.npmmirror.com/lx-music-desktop-version-info/latest', 'npm'],
-  ['https://gitee.com/lyswhut/lx-music-desktop-versions/raw/master/version.json', 'direct'],
-  ['http://cdn.stsky.cn/lx-music/desktop/version.json', 'direct'],
-]
+// 更新源仅指向独立版 LX-N 自己的仓库，不再使用原版 lx-music-desktop 的任何发布渠道。
+// 只保留 github 源站（raw.githubusercontent.com）：能用梯子访问 GitHub 的用户能读到正确版本；
+// 访问不了 GitHub 的用户会获取失败（显示「获取最新版本信息失败」），而不会 fallback 到 jsdelivr 等 CDN ——
+// 那些 CDN 可能缓存了旧的原版内容（如 2.12.6），会导致无法访问 GitHub 的用户被错误提示原版版本。
+const address = getUpdateFeedAddress()
 
 const request = async(url, retryNum = 0) => {
   return new Promise((resolve, reject) => {
@@ -39,15 +32,6 @@ const getDirectInfo = async(url) => {
   })
 }
 
-const getNpmPkgInfo = async(url) => {
-  return request(url).then(json => {
-    if (!json.versionInfo) throw new Error('failed')
-    const info = JSON.parse(json.versionInfo)
-    if (info.version == null) throw new Error('failed')
-    return info
-  })
-}
-
 export const getVersionInfo = async(index = 0) => {
   if (!updateFeedEnabled) return { version: pkg.version, desc: '', history: [] }
   const [url, source] = address[index]
@@ -56,9 +40,8 @@ export const getVersionInfo = async(index = 0) => {
     case 'direct':
       promise = getDirectInfo(url)
       break
-    case 'npm':
-      promise = getNpmPkgInfo(url)
-      break
+    default:
+      throw new Error('unsupported')
   }
 
   return promise.catch(async(err) => {

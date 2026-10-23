@@ -141,7 +141,8 @@ const checkUpdate = () => {
   if (isWin && process.arch.includes('arm')) {
     handleSendEvent({ type: WIN_MAIN_RENDERER_EVENT_NAME.update_error, info: 'failed' })
   } else {
-    autoUpdater.autoDownload = global.lx.appSetting['common.tryAutoUpdate']
+    // LX-N 不做自动下载：强制关闭 autoDownload，仅由渲染层「检查更新 → 跳转 GitHub Releases 手动下载」。
+    autoUpdater.autoDownload = false
     void autoUpdater.checkForUpdates()
   }
 }

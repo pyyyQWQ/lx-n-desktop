@@ -2,8 +2,6 @@
 dt#update {{ $t('setting__update') }}
 dd
   .gap-top
-    base-checkbox(id="setting__update_tryAutoUpdate" :model-value="appSetting['common.tryAutoUpdate']" :label="$t('setting__update_try_auto_update')" @update:model-value="updateSetting({'common.tryAutoUpdate': $event})")
-  .gap-top
     base-checkbox(id="setting__update_showChangeLog" :model-value="appSetting['common.showChangeLog']" :label="$t('setting__update_show_change_log')" @update:model-value="updateSetting({'common.showChangeLog': $event})")
   .gap-top
     .gap-top
@@ -13,6 +11,7 @@ dd
         span.select {{ commit_id }}
       .p.small(v-if="commit_date") {{ $t('setting__update_commit_date') }}{{ commit_date }}
 
+    .p.small(v-if="versionInfo.status =='checking'") {{ $t('setting__update_checking') }}
     .p.small.gap-top
       | {{ $t('setting__update_latest_label') }}{{ versionInfo.newVersion && versionInfo.newVersion.version != '0.0.0' ? versionInfo.newVersion.version : $t('setting__update_unknown') }}
     .p.small(v-if="downloadProgress" style="line-height: 1.5;")
@@ -28,7 +27,8 @@ dd
         span {{ $t('setting__update_new_version') }}
       .p
         base-btn.btn.gap-left(min @click="showUpdateModal") {{ $t('setting__update_open_version_modal_btn') }}
-    .p.small(v-else-if="versionInfo.status =='checking'") {{ $t('setting__update_checking') }}
+    .p.small.gap-top
+      base-btn.btn(min @click="handleCheckUpdate") {{ $t('setting__update_check_btn') }}
 </template>
 
 <script>
@@ -76,10 +76,16 @@ export default {
       versionInfo.showModal = true
     }
 
+    // 检查更新：强制重新获取最新版本信息并弹出更新窗口（仅提示 + 跳转 GitHub Releases，不自动下载）
+    const handleCheckUpdate = () => {
+      window.app_event?.checkForUpdate()
+    }
+
     return {
       versionInfo,
       downloadProgress,
       handleOpenDevTools,
+      handleCheckUpdate,
       showUpdateModal,
       appSetting,
       updateSetting,

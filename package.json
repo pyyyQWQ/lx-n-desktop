@@ -1,6 +1,6 @@
 {
   "name": "lx-netease-music-desktop",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "LX-N 网易云音乐桌面版改良版（基于 lx-music-desktop 的独立构建）",
   "main": "./dist/main.js",
   "scripts": {
@@ -58,6 +58,7 @@
     "build:theme": "node src/common/theme/createThemes.js",
     "build": "node build-config/pack.js",
     "test": "node --no-warnings --experimental-strip-types --experimental-loader=./tests/ts-resolve-loader.mjs tests/run.mjs",
+    "test:webdav": "node tests/webdavTransport.check.cjs && node --no-warnings --experimental-strip-types --experimental-loader=./tests/ts-resolve-loader.mjs tests/webdavE2E.check.mjs",
     "build:main": "cross-env NODE_ENV=production webpack --config build-config/main/webpack.config.prod.js --progress",
     "build:renderer": "cross-env NODE_ENV=production webpack --config build-config/renderer/webpack.config.prod.js --progress",
     "build:renderer-lyric": "cross-env NODE_ENV=production webpack --config build-config/renderer-lyric/webpack.config.prod.js --progress",
@@ -193,6 +194,7 @@
     "utf-8-validate": "^6.0.6",
     "vue": "~3.3.13",
     "vue-router": "~4.5.1",
+    "webdav": "^5.11.0",
     "ws": "^8.21.3"
   },
   "overrides": {

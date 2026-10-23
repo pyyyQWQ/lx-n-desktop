@@ -9,7 +9,7 @@ import {
   getLastStartInfo,
   saveLastStartInfo,
 } from '@renderer/utils/ipc'
-import { compareVer, isWin } from '@common/utils'
+import { compareVer } from '@common/utils'
 import { isShowChangeLog, versionInfo } from '@renderer/store'
 import { getVersionInfo } from '@renderer/utils/update'
 import { dialog } from '@renderer/plugins/Dialog'
@@ -18,24 +18,8 @@ import { appSetting } from '@renderer/store/setting'
 export default () => {
   let isShowedChangeLog = false
 
-  // 更新超时定时器
+  // 更新超时定时器（不再用于自动下载，仅保留清理逻辑，避免无关引用）
   let updateTimeout: number | null = null
-  const startUpdateTimeout = () => {
-    if (window.lx.isProd && !(isWin && process.arch.includes('arm'))) {
-      updateTimeout = window.setTimeout(() => {
-        updateTimeout = null
-        void nextTick(() => {
-          showUpdateModal()
-          setTimeout(() => {
-            void dialog({
-              message: window.i18n.t('update__timeout_top'),
-              confirmButtonText: window.i18n.t('alert_button_text'),
-            })
-          }, 500)
-        })
-      }, 60 * 60 * 1000)
-    }
-  }
 
   const clearUpdateTimeout = () => {
     if (!updateTimeout) return
@@ -76,10 +60,12 @@ export default () => {
         return body
       })
     ).catch(() => {
-      if (versionInfo.newVersion) return versionInfo.newVersion
+      // 获取最新版本失败：不要回退到旧缓存（旧缓存可能是上一个版本号，会误报新版本，如 2.12.6）。
+      // 统一返回未知态（version='0.0.0'），由调用方显示「获取最新版本信息失败」。
       let result = {
         version: '0.0.0',
         desc: '',
+        history: [],
       }
       versionInfo.newVersion = result
       return result
@@ -144,6 +130,7 @@ export default () => {
   }
 
   const rUpdateAvailable = onUpdateAvailable(({ params: info }) => {
+    // 不做自动下载：仅记录新版本信息并弹窗提示，由用户在弹窗内决定是否手动去 GitHub Releases 下载。
     // versionInfo.isDownloading = true
     // console.log(info)
     versionInfo.newVersion = {
@@ -151,10 +138,6 @@ export default () => {
       desc: info.releaseNotes as string,
     }
     versionInfo.isLatest = false
-    if (appSetting['common.tryAutoUpdate']) {
-      versionInfo.status = 'downloading'
-      startUpdateTimeout()
-    }
     void nextTick(() => {
       showUpdateModal()
     })
@@ -190,6 +173,19 @@ export default () => {
     })
   })
 
+  // 手动「检查更新」：强制重新获取最新版本信息
+  const handleManualCheck = () => {
+    versionInfo.reCheck = true
+    showUpdateModal()
+  }
+  const onCheckForUpdate = () => {
+    window.app_event.on('checkForUpdate', handleManualCheck)
+  }
+  const offCheckForUpdate = () => {
+    window.app_event.off('checkForUpdate', handleManualCheck)
+  }
+  onCheckForUpdate()
+
   watch(() => versionInfo.showModal, (visible) => {
     if (visible || isShowedChangeLog || versionInfo.status == 'downloaded') return
     setTimeout(() => {
@@ -199,6 +195,7 @@ export default () => {
 
   onBeforeUnmount(() => {
     clearUpdateTimeout()
+    offCheckForUpdate()
     rUpdateAvailable()
     rUpdateNotAvailable()
     rUpdateError()

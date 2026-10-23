@@ -9,6 +9,9 @@ const tests = [
   'domain.test.mjs',
   'cookie.test.mjs',
   'accountLogic.test.mjs',
+  'updateFeed.test.mjs',
+  'dailyRec.test.mjs',
+  'webdavSync.test.mjs',
 ]
 
 let allOk = true

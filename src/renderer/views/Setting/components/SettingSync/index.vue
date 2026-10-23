@@ -1,7 +1,7 @@
 <template lang="pug">
 dt#sync
   | {{ $t('setting__sync') }}
-  button(class="help-btn" :aria-label="$t('setting__sync_tip')" @click="openUrl('https://lyswhut.github.io/lx-music-doc/desktop/faq/sync')")
+  button(class="help-btn" :aria-label="$t('setting__sync_tip')" @click="openUrl('https://github.com/pyyyQWQ/lx-n-desktop/issues')")
     svg-icon(name="help-circle-outline")
 dd
   base-checkbox(id="setting_sync_enable" :model-value="appSetting['sync.enable']" :label="$t('setting__sync_enable')" @update:model-value="updateSetting({ 'sync.enable': $event })")
@@ -16,6 +16,8 @@ dd
 SyncClient(v-if="sync.mode == 'client'")
 SyncServer(v-else)
 
+WebdavSync
+
 </template>
 
 <script>
@@ -25,12 +27,14 @@ import { openUrl } from '@common/utils/electron'
 import { appSetting, updateSetting } from '@renderer/store/setting'
 import SyncServer from './SyncServer.vue'
 import SyncClient from './SyncClient.vue'
+import WebdavSync from './WebdavSync.vue'
 
 export default {
   name: 'SettingSync',
   components: {
     SyncServer,
     SyncClient,
+    WebdavSync,
   },
   setup() {
     return {

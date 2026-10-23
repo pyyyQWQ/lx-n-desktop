@@ -39,6 +39,14 @@ const router = createRouter({
       },
     },
     {
+      path: '/wy/dailyRec',
+      name: 'WyDailyRec',
+      component: require('./views/wy/DailyRec/index.vue').default,
+      meta: {
+        name: 'WyDailyRec',
+      },
+    },
+    {
       path: '/leaderboard',
       name: 'Leaderboard',
       component: require('./views/Leaderboard/index.vue').default,

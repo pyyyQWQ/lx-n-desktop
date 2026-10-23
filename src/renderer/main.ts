@@ -23,6 +23,7 @@ import type { I18n } from '@root/lang/i18n'
 
 import { initSetting } from './store/setting'
 import { initWyLoginStatus, initWyLoginVerify, initWyLoginExpiredListener } from './core/wyLogin'
+import { initWebdavSync } from './core/sync/webdavSync'
 // import { bubbleCursor } from './utils/cursor-effects/bubbleCursor'
 
 import './worker'
@@ -76,6 +77,9 @@ void getSetting().then(setting => {
   initWyLoginVerify()
   // 注册网易云登录态失效监听（请求层 301 时复位状态并清持久化 Cookie）
   initWyLoginExpiredListener()
+
+  // WebDAV 启动自动同步（仅在「启用 + 自动同步歌单」且已配置时，后台触发一次；不阻塞启动）
+  initWebdavSync()
 
   const app = createApp(App)
   app

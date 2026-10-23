@@ -74,6 +74,15 @@ export default {
           enable: true,
         },
         {
+          to: '/wy/dailyRec',
+          tips: t('wy_daily_rec__open_in_nav'),
+          icon: '#icon-wy-daily-rec',
+          iconSize: '0 0 24 24',
+          size,
+          name: 'WyDailyRec',
+          enable: true,
+        },
+        {
           to: '/download',
           tips: t('download'),
           icon: '#icon-download-2',

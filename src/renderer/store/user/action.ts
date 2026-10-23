@@ -1,4 +1,4 @@
-import { wyLoginStatus, wyUid, wyLikedSongIds, wyUserInfo, isWyVerifying, wyUserDataLoaded, wyPlaylists } from './state'
+import { wyLoginStatus, wyUid, wyLikedSongIds, wyUserInfo, isWyVerifying, wyUserDataLoaded, wyPlaylists, wyDailyRecSongs, wyDailyRecPlaylists } from './state'
 
 // 通知 UI 喜欢的歌曲列表已变化
 const notifyLikedChanged = () => {
@@ -11,6 +11,8 @@ const notifyLikedChanged = () => {
 const clearWyLikedSongs = () => {
   wyLikedSongIds.clear()
   wyPlaylists.splice(0, wyPlaylists.length)
+  wyDailyRecSongs.splice(0, wyDailyRecSongs.length)
+  wyDailyRecPlaylists.splice(0, wyDailyRecPlaylists.length)
 }
 
 /**
@@ -133,6 +135,28 @@ const setWyPlaylists = (playlists: Array<{
   wyPlaylists.splice(0, wyPlaylists.length, ...playlists)
 }
 
+/**
+ * 覆盖写入每日推荐歌曲列表（真实接口结果）。
+ */
+const setWyDailyRecSongs = (songs: LX.Music.MusicInfo[]) => {
+  wyDailyRecSongs.splice(0, wyDailyRecSongs.length, ...songs)
+}
+
+/**
+ * 覆盖写入每日推荐歌单列表（真实接口结果）。
+ */
+const setWyDailyRecPlaylists = (playlists: Array<{
+  id: string
+  name: string
+  trackCount: number
+  coverImgUrl: string
+  creator?: string
+  playCount?: number
+  description?: string
+}>) => {
+  wyDailyRecPlaylists.splice(0, wyDailyRecPlaylists.length, ...playlists)
+}
+
 export {
   setWyNotLogin,
   setWyVerifying,
@@ -145,6 +169,8 @@ export {
   removeWyLikedSong,
   setWyUserDataLoaded,
   setWyPlaylists,
+  setWyDailyRecSongs,
+  setWyDailyRecPlaylists,
 }
 
 export default {
@@ -159,4 +185,6 @@ export default {
   removeWyLikedSong,
   setWyUserDataLoaded,
   setWyPlaylists,
+  setWyDailyRecSongs,
+  setWyDailyRecPlaylists,
 }
