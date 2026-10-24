@@ -1,6 +1,8 @@
-# lx-music-desktop 常见问题
+# LX-N Desktop 常见问题
 
-本文档已迁移至：<https://lyswhut.github.io/lx-music-doc/desktop/faq>
+> 本文档源自 LX Music 桌面版常见问题，由 LX-N 独立构建继续维护。
+> 遇到问题时请到 <https://github.com/pyyyQWQ/lx-n-desktop/issues> 反馈。
+> 文中指向上游项目（lyswhut/lx-music-desktop）的 issue 与文档链接为历史出处，保留不改。
 
 <!--
 在阅读本常见问题后，仍然无法解决你的问题，请提交issue或者加企鹅群`830125506`反馈（无事勿加，入群先看群公告），反馈时请**注明**已阅读常见问题！

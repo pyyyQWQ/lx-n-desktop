@@ -37,9 +37,11 @@ dd
   br
 
   .p.small
-    | By:&nbsp;
+    | 原作者：&nbsp;
     strong 落雪无痕
-    | （LX-N 网易云改良版，基于 lx-music-desktop 独立构建）
+    | &nbsp;&nbsp;&nbsp;&nbsp;LX-N 维护者：&nbsp;
+    strong pyyyQWQ
+    | （LX-N 网易云改良版，基于 LX Music 桌面版独立构建）
 </template>
 
 <script>

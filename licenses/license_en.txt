@@ -50,3 +50,4 @@ DEFINITIONS:
 * The content of this agreement is translated from the Chinese version of the agreement.
 
 By: lyswhut
+LX-N derivative maintainer: pyyyQWQ (continued development based on the original author's agreement above)

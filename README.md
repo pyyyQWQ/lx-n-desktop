@@ -127,6 +127,6 @@ pnpm run pack:win:portable:x64
 
 ## 许可证与来源
 
-本项目基于 [LX Music 桌面版](https://github.com/lyswhut/lx-music-desktop) 的源码继续开发，遵循 [Apache License 2.0](LICENSE)。上游版权归原作者及贡献者所有；LX-N 的衍生修改由本发布版本的维护者负责。
+本项目基于 [LX Music 桌面版](https://github.com/lyswhut/lx-music-desktop) 的源码继续开发，遵循 [Apache License 2.0](LICENSE)。上游版权归原作者（落雪无痕 / lyswhut）及贡献者所有；LX-N 的衍生修改由维护者 **pyyyQWQ** 负责。
 
 项目内字体、图片、音频滤镜及其他第三方资源的许可证与归属信息见 `licenses/` 及对应源文件。使用本项目时请同时遵守上游项目协议与所在地法律法规，尊重音乐版权。

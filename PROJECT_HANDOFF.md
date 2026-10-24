@@ -1036,3 +1036,75 @@ node build-config/build-pack.js target=win arch=x64 type=portable
 4. 打 tag `v1.1.0` 并创建 Release，正文用 `RELEASE_NOTES-v1.1.0.md`
 5. 上传 3 个附件到 Release，**不要**上传 blockmap / latest.yml
 6. 上传前再次确认 `publish/version.json` 未被误改
+---
+
+## 20. 品牌审计决定执行（2026-10-25 01:08–01:35，第 10 轮）
+
+> 依据：`BRANDING_AUDIT.md`（已移到项目外 `C:\Users\PY\Desktop\BRANDING_AUDIT.md`）§9 的 20 项待决事项。
+> 用户通过交互窗口逐项拍板，本轮按决定执行。
+> 开发前备份：`C:\Users\PY\Desktop\LX-N-Desktop-PRE-BRAND2-20261025-0108`（857 文件已验证一致）
+
+### 20.1 用户决定与执行结果
+
+| # | 事项 | 用户决定 | 实际执行 |
+|---|---|---|---|
+| 1 | 关于页署名 | 改为「原作者：落雪无痕　LX-N 维护者：pyyyQWQ」 | ✅ `SettingAbout.vue` 已改 |
+| 2 | 关于页副标题 | 改为「基于 LX Music 桌面版独立构建」 | ✅ 已改（把 `lx-music-desktop` 换成正式名） |
+| 3 | 许可证署名 | 保留并追加 LX-N 维护者署名 | ✅ `license_zh.txt`、`license_en.txt` 各追加一行，**原 `By:` 行保留** |
+| 4 | 安装向导协议 license.rtf | 保留原样 | ✅ 未改动 |
+| 5 | 软件内协议弹窗 PactModal | 保留原样 | ✅ 未改动 |
+| 6 | 下载设置文案 | （上一轮已改为 LX-N） | ✅ 已确认无需再动 |
+| 7 | 开放 API 文案 | （上一轮已改为 LX-N） | ✅ 已确认无需再动 |
+| 8 | Windows 旧版提示 | （上一轮已改为 LX-N Desktop） | ✅ 已确认无需再动 |
+| 9 | README / RELEASE_NOTES 来源说明 | 保留但补充 LX-N 维护者信息 | ✅ 两处均补为「原作者（落雪无痕 / lyswhut）…维护者 **pyyyQWQ**」 |
+| 10 | productName | 不改，保持 `lx-netease-music-desktop` | ✅ 未改动（避免影响已发布版本的升级路径） |
+| 11 | 局域网同步标识 | 保留（保持兼容） | ✅ 未改动 |
+| 12 | 请求 UA | 保留 `lx-music request` | ✅ 未改动 |
+| 13 | 临时目录 | 保留 `lxmusic_temp` | ✅ 未改动 |
+| 14 | UserApiModal aria-label | （上一轮已改为新仓库） | ✅ 已确认无需再动 |
+| 15 | doc/images/icon.png | （上一轮已替换） | ✅ 已确认无需再动 |
+| 16 | icon.svg | 先确认用途再决定 | ✅ **已确认：全项目无任何代码引用，属未使用资源**，故不处理 |
+| 17 | publish/changeLog.md 原版历史 | 全部保留 | ✅ 未改动 |
+| 18 | FAQ.md | 更新标题与链接 | ✅ 标题改「LX-N Desktop 常见问题」，头部加说明与反馈地址；**上游 issue 链接作为历史出处保留不改** |
+| 19 | doc/images/app.png | 重新截图 | ✅ 用打包版 1.1.0 重新截取（内容为每日推荐页，无旧品牌文字） |
+| 20 | 托盘/任务栏图标 | 保留现有功能图标 | ✅ 未改动 |
+
+### 20.2 本轮修改文件（7 个）
+| 文件 | 改动 |
+|---|---|
+| `src/renderer/views/Setting/components/SettingAbout.vue` | 署名改为「原作者 + LX-N 维护者」双行；副标题改为「基于 LX Music 桌面版独立构建」 |
+| `licenses/license_zh.txt` | 末尾追加「LX-N 衍生版维护者：pyyyQWQ（基于上述原作者协议继续开发）」 |
+| `licenses/license_en.txt` | 末尾追加英文对应行 |
+| `README.md` | 来源说明补充原作者姓名与维护者 |
+| `RELEASE_NOTES-v1.1.0.md` | 同上 |
+| `FAQ.md` | 标题改为 LX-N Desktop；头部加来源说明与反馈地址 |
+| `doc/images/app.png` | 用 1.1.0 打包版重新截取（1020×660） |
+
+### 20.3 构建期发现并修复的问题
+初次构建**失败**：eslint 报 `no-irregular-whitespace`（`SettingAbout.vue:42` 使用了全角空格 U+3000）。
+→ 改用 `&nbsp;` 替代，重新构建后 4 目标全部 success。
+（这提醒：界面文案中不要用全角空格，项目启用了该 lint 规则。）
+
+### 20.4 验证结果
+| 检查 | 结果 |
+|---|---|
+| `pnpm build` | ✅ 4 目标全 success（修复 lint 后） |
+| 关于页文案进入产物 | ✅ `dist/renderer.js` 含「原作者：」「LX-N 维护者：」「基于 LX Music 桌面版独立构建」各 1 处 |
+| `pnpm test` | ✅ **164 断言全通过** |
+| 许可证原署名保留 | ✅ 两文件的 `By:` 行仍在，仅追加未替换 |
+
+### 20.5 仓库清理（Codex 提交后遗留）
+| 项 | 处理 |
+|---|---|
+| `CHANGELOG.md` | 用户说明该文件是**原版作者的更新日志、由用户手动删除**。经核实：`src/` 运行时零引用（仅 `publish/utils/updateChangeLog.js` 这个原版发版脚本用，本项目不走该流程），确认可删 → **已执行 `git rm CHANGELOG.md`**（git 历史保留）。<br>⚠️ 修正：我先前曾误判为「工作区意外丢失」并用 `git checkout` 恢复过，属判断失误，已按用户意图删除 |
+| `BRANDING_AUDIT.md` 未提交 | ✅ 已移到项目外 `C:\Users\PY\Desktop\BRANDING_AUDIT.md`（排查报告不属于项目内容） |
+
+### 20.6 当前 Git 状态
+- 分支 `baseline-v1.0`，HEAD `a25f976`（v1.1.0 已提交并推送，tag `v1.1.0` 已推送到 origin）
+- 本轮 7 个修改，**未提交**
+- 工作区无未跟踪文件
+
+### 20.7 待办
+1. 本轮 7 个改动待提交（建议 commit message：`chore: 品牌署名与文档完善`）
+2. 由于改了关于页与许可证，**若已发布的 v1.1.0 安装包需要体现这些改动，需重新打包并重新发版**（当前 `build/` 中的 exe 是改动前的产物）
+3. FAQ.md 与 README 的改动属文档，不影响程序行为

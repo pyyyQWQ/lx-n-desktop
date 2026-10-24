@@ -112,4 +112,4 @@
 
 ## 许可证
 
-本项目遵循 Apache License 2.0，基于 [LX Music 桌面版](https://github.com/lyswhut/lx-music-desktop)。上游版权归原作者及贡献者所有；LX-N 衍生修改由本发布维护者负责。
+本项目遵循 Apache License 2.0，基于 [LX Music 桌面版](https://github.com/lyswhut/lx-music-desktop)。上游版权归原作者（落雪无痕 / lyswhut）及贡献者所有；LX-N 衍生修改由维护者 **pyyyQWQ** 负责。
