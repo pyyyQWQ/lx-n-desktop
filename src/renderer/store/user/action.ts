@@ -136,9 +136,9 @@ const setWyPlaylists = (playlists: Array<{
 }
 
 /**
- * 覆盖写入每日推荐歌曲列表（真实接口结果）。
+ * 覆盖写入每日推荐歌曲列表（真实接口结果，原始在线结构）。
  */
-const setWyDailyRecSongs = (songs: LX.Music.MusicInfo[]) => {
+const setWyDailyRecSongs = (songs: any[]) => {
   wyDailyRecSongs.splice(0, wyDailyRecSongs.length, ...songs)
 }
 

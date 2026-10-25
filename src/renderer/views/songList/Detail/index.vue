@@ -34,6 +34,8 @@
         :total="listDetailInfo.total"
         :list="listDetailInfo.list"
         :no-item="listDetailInfo.noItemLabel"
+        :playing-list-id="playingListId"
+        :playing-index-offset="playingIndexOffset"
         @play-list="handlePlayList"
         @toggle-page="togglePage"
       />
@@ -42,12 +44,13 @@
 </template>
 
 <script lang="ts">
-import { ref, watch } from '@common/utils/vueTools'
+import { ref, watch, computed, onMounted, onBeforeUnmount } from '@common/utils/vueTools'
 import { listDetailInfo } from '@renderer/store/songList/state'
 import { setVisibleListDetail } from '@renderer/store/songList/action'
 import { useRouter } from '@common/utils/vueRouter'
 import { addSongListDetail, playSongListDetail } from './action'
 import useList from './useList'
+import { setPendingScrollIndex, pendingScrollIndex, safeScrollToIndex, toPageAndRow } from './scrollState'
 import useKeyBack from './useKeyBack'
 
 
@@ -57,7 +60,6 @@ const page = ref<number>(1)
 const picUrl = ref<string>('')
 const refresh = ref<boolean>(false)
 
-
 interface Query {
   source?: string
   id?: string
@@ -65,6 +67,7 @@ interface Query {
   picUrl?: string
   refresh?: 'true'
   fromName?: string
+  scrollIndex?: string
 }
 
 const verifyQueryParams = async function(this: any, to: { query: Query, path: string }, from: any, next: (route?: { path: string, query: Query }) => void) {
@@ -100,6 +103,8 @@ const verifyQueryParams = async function(this: any, to: { query: Query, path: st
   picUrl.value = _picUrl ?? ''
   refresh.value = _refresh ? _refresh == 'true' : false
   if (to.query.fromName) window.lx.songListInfo.fromName = to.query.fromName
+  // 「定位当前播放」：路由带 scrollIndex 时，等列表加载完成后滚动到该行
+  setPendingScrollIndex(to.query.scrollIndex)
 }
 
 
@@ -108,6 +113,62 @@ export default {
   beforeRouteUpdate: verifyQueryParams,
   setup() {
     const router = useRouter()
+
+    // 播放标识：从歌单详情播放时 tempListMeta.id 记为 <source>__<listId>，
+    // 用同样格式传给列表组件才能匹配「当前播放」。
+    const playingListId = computed(() => (source.value && id.value) ? (source.value + '__' + id.value) : null)
+    // 当前页之前的行数：把页内行号换算成全局行号，否则第 2 页及以后标不出正在播放的那首
+    const playingIndexOffset = computed(() => Math.max(((listDetailInfo.page || 1) - 1) * (listDetailInfo.limit || 30), 0))
+
+    /**
+     * 「定位当前播放」的轮询（支持跨页）。
+     * playInfo.playIndex 是完整播放队列里的**全局行号**，可能远超当前页条数；
+     * 直接用它滚当前页会越界 → 表现为「只回到顶部」。所以先算目标在第几页，必要时切页。
+     */
+    let scrollTimer: number | null = null
+    let scrollTries = 0
+    let scrollPageSwitched = false
+    const stopScrollRetry = () => {
+      if (scrollTimer != null) { clearInterval(scrollTimer); scrollTimer = null }
+    }
+    const startScrollRetry = () => {
+      if (pendingScrollIndex.value == null || scrollTimer != null) return
+      scrollTries = 0
+      scrollPageSwitched = false
+      const tick = () => {
+        scrollTries++
+        const globalIndex = pendingScrollIndex.value
+        if (globalIndex == null) { stopScrollRetry(); return }
+        if (!listDetailInfo.list.length) {
+          if (scrollTries > 30) stopScrollRetry()
+          return
+        }
+        const pageSize = listDetailInfo.limit || 30
+        const { page, rowIndex } = toPageAndRow(globalIndex, pageSize)
+        if (listDetailInfo.page !== page) {
+          if (!scrollPageSwitched) {
+            scrollPageSwitched = true
+            void getListData(source.value, id.value, page, false)
+          }
+          if (scrollTries > 60) stopScrollRetry()
+          return
+        }
+        const ok = safeScrollToIndex(listRef.value, rowIndex, listDetailInfo.list.length)
+        if (ok) {
+          pendingScrollIndex.value = null
+          stopScrollRetry()
+        } else if (scrollTries > 60) {
+          stopScrollRetry()
+        }
+      }
+      setTimeout(() => {
+        tick()
+        if (pendingScrollIndex.value != null && scrollTimer == null) scrollTimer = window.setInterval(tick, 100)
+      }, 80)
+    }
+    onMounted(startScrollRetry)
+    watch(pendingScrollIndex, startScrollRetry)
+    onBeforeUnmount(stopScrollRetry)
 
     const {
       listRef,
@@ -148,6 +209,8 @@ export default {
       picUrl,
       listDetailInfo,
       listRef,
+      playingListId,
+      playingIndexOffset,
       togglePage,
       addSongListDetail,
       playSongListDetail,

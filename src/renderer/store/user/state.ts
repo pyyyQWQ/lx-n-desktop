@@ -51,8 +51,13 @@ export const wyPlaylists = shallowReactive<Array<{
 
 /**
  * 每日推荐歌曲列表（真实接口结果缓存）。切换账号 / 退出时清空。
+ *
+ * 注意：缓存的是**原始在线歌曲结构**（`source:'wy'` + `songmid`/`types`/`_types` 等旧字段），
+ * 而不是播放器使用的 MusicInfo 新结构。原因：
+ *   1. `material-online-list` 及其「添加到列表」弹窗依赖原始结构取字段；
+ *   2. 播放时再经 `toNewMusicInfo` 转换即可。
  */
-export const wyDailyRecSongs = shallowReactive<LX.Music.MusicInfo[]>([])
+export const wyDailyRecSongs = shallowReactive<any[]>([])
 
 /**
  * 每日推荐歌单列表（真实接口结果缓存）。切换账号 / 退出时清空。

@@ -1108,3 +1108,137 @@ node build-config/build-pack.js target=win arch=x64 type=portable
 1. 本轮 7 个改动待提交（建议 commit message：`chore: 品牌署名与文档完善`）
 2. 由于改了关于页与许可证，**若已发布的 v1.1.0 安装包需要体现这些改动，需重新打包并重新发版**（当前 `build/` 中的 exe 是改动前的产物）
 3. FAQ.md 与 README 的改动属文档，不影响程序行为
+---
+
+## 21. 1.1.0 实机使用问题修复（2026-10-25 ~ 10-26，第 11 轮）
+
+> 用户在实际使用 1.1.0 过程中反馈的问题，逐项修复并经用户实测确认。
+> 开发前备份：`C:\Users\PY\Desktop\LX-N-Desktop-PRE-BUGFIX-20261025-0245`（856 文件已验证）
+
+### 21.1 问题 1：每日推荐右键「添加到歌单」失败并报错
+
+**现象**：每日推荐页右键歌曲 →「添加到」某歌单 → 歌单里没有这首歌，弹出
+`Uncaught runtime errors: An object could not be cloned`。
+
+**根因（实测复现）**：`ipcRenderer.invoke` 用结构化克隆传参，**无法复制 Vue 的响应式 Proxy**。
+`ListAddModal.vue` 把歌曲放进 `ref()` 再取出，拿到的是 Proxy，克隆失败。
+
+**关键发现**：**这是原版既有 bug**，排行榜、歌单详情的「添加到歌单」同样会报错，只是用户此前未在此处使用。
+用 Node 复现验证：
+- 修复前（传 Proxy）→ `FAIL: #<Object> could not be cloned.`（与用户报错完全一致）
+- 修复后（toRaw 解代理）→ `OK`
+
+**修复**：`components/common/ListAddModal.vue`
+1. 赋值时 `toRaw()` 解除外层代理
+2. 调用 `addListMusics` / `moveListMusics` 前再 `toRaw` 一次（防嵌套 `meta` 也被代理）
+
+→ 同时修好所有在线列表（每日推荐/排行榜/歌单详情/搜索）的「添加到歌单」。
+
+### 21.2 问题 2：新增页面缺少「正在播放」三角标识
+
+**现象**：我的列表有播放三角，每日推荐/排行榜/歌单详情没有（序号列空白或数字）。
+
+**根因（两层叠加）**：
+1. `material-online-list` 没有「当前播放」概念，三角是 `views/List/MusicList` 私有实现；
+2. **样式类名冲突**：模板用全局类 `num`，而样式写进 `<style module>`，两边对不上 →
+   `.num` 缺 `position: relative`，`position: absolute` 的图标失去定位基准、跑到容器外，
+   表现为**序号列空白**。
+
+**修复**：
+- 给 `OnlineList` 增加可选 `playingListId` + `playingIndexOffset`，仅在传入且与
+  `tempListMeta.id` 匹配时显示三角（默认 null，其他在线列表行为不变）
+- 模板改用 `:class="$style.numCell"`，类名独立避免与全局 `.num`/`layout.less` 冲突
+- 去掉多余的 svg 尺寸规则，`<template v-else>` 改回 `<div v-else class="num">`，与可用实现一致
+- 排行榜传 `board__<boardId>`、歌单详情传 `<source>__<listId>`、每日推荐传 `dailyrec_wy`
+
+**跨页修正**：`playingIndexOffset = (当前页-1) × 每页条数`，
+把「页内行号」换算成全局行号后再与 `playInfo.playIndex` 比较，否则第 2 页以后标不出来。
+
+### 21.3 问题 3：封面右键「回不到来源页」
+
+**现象**：在每日推荐/我的歌单/歌单详情/排行榜播放后，右键底部封面跳不到对应页面。
+原版只在「我的列表」可用。
+
+**根因**：`handleToMusicLocation` 写死跳 `/list`，只认「我的列表」。
+而在线列表播放时 `playMusicInfo.listId` 恒为 `temp`，真实来源记录在 `tempListMeta.id`，
+原代码完全没用到。
+
+**修复**：新增 `components/layout/PlayBar/useMusicLocation.ts` 统一解析来源，
+三个宽度版本（Full/Middle/Mini）都改为调用它。
+
+**判定顺序（关键，踩过坑）**：
+
+1. **先判 `playMusicInfo.listId !== temp` → 我的列表**。
+   `tempListMeta.id` 只会在在线列表播放时写入、**从「我的列表」播放不会清空**，
+   若先读它，会把「我的列表」的歌误判成上次的榜单/歌单（这正是「我的列表无法定位」的原因）。
+2. `listId === temp` 时才读 `tempListMeta.id`，按格式分流：
+   - `dailyrec_wy` → `/wy/dailyRec`
+   - `board__<source>__<boardId>` → `/leaderboard`
+     （`boardId` 必须传**完整 `source__boardId`**，因为 `getListDetail` 内部用 `split('__')` 取 source；
+     只传纯数字会报 `Cannot read properties of undefined (reading 'list')`。
+     同时 `source` 也要给，否则路由守卫走「默认榜单并重定向」分支、`scrollIndex` 丢失）
+   - `<source>__<listId>` → `/songList/detail`
+3. 下载列表按现行行为不定位。
+
+### 21.4 问题 4：播放详情页右击封面无定位
+
+**根因**：播放详情页（`PlayDetail/index.vue`）的封面**根本没有绑定右键定位**，
+只有容器上的「右键双击关闭详情页」处理。原版设计是「右击底部播放栏封面」，详情页从未有此功能。
+
+**修复**：给详情页封面加 `@contextmenu.stop="handleToMusicLocation"`（`.stop` 阻止冒泡，
+避免误触发关闭详情页），复用同一套 `resolveMusicLocation`。
+
+### 21.5 问题 5：定位只能到页面顶部，不滚到目标行
+
+**根因（三层，逐层用实测证据排除）**：
+1. **缓存短路**：`getAndSetListDetail` 在同一榜单/歌单已加载时会直接 `return`，
+   数据加载回调（`.then`）根本不执行 → 改为**轮询重试**，不依赖回调；
+2. **`behavior:'instant'` 不生效**：`VirtualizedList.scrollTo` 在**不传 onScrollEnd** 时走
+   `scrollTo({behavior:'instant'})`，该值在部分 Chromium 版本不被识别、滚动静默失效 →
+   改为**传非空回调**，强制走「直接设置 `scrollTop`」分支；
+3. **"调用即成功"过早停止**：虚拟列表只渲染视口附近的行，设置 `scrollTop` 后需一帧才重算渲染。
+   原实现调用完就返回成功并清空定位目标 → 改为**读回 `getScrollTop()` 实际位置校验**，未到位继续重试。
+
+**跨页定位**：`playInfo.playIndex` 是**完整播放队列里的全局行号**（排行榜播放时队列被替换为全量歌曲），
+可能远超当前页条数。改为先换算「第几页 + 页内第几行」，必要时自动切页再滚。
+
+> 实测日志证据（用户提供）：`{globalIndex: 68, pageSize: 300, curPage: 1, targetPage: 1, rowIndex: 68}`
+> —— 说明该榜单每页 300 首，第 200 首在第 1 页第 69 行；同时印证了上述第 2/3 层问题。
+
+**防护**：`safeScrollToIndex` 增加
+- 方法存在性检查（`typeof !== 'function'` 不算成功，避免定位目标被误消费）
+- 下标范围校验
+- 异常捕获（Chromium 在元素销毁时会抛 `DOMException: ... aborted`）
+
+### 21.6 本轮修改文件（14 改 + 3 新增）
+
+| 文件 | 改动 |
+|---|---|
+| `components/common/ListAddModal.vue` | `toRaw` 解代理（修「添加到歌单」） |
+| `components/material/OnlineList/index.vue` | 播放三角标识 + `numCell` 样式 + `scrollToIndex`/`getScrollTop` 暴露 |
+| `components/layout/PlayBar/useMusicLocation.ts`（新） | 来源解析（我的列表/每日推荐/排行榜/歌单详情） |
+| `components/layout/PlayBar/{Full,Middle,Mini}WidthProgress.vue` | 改用统一解析 |
+| `components/layout/PlayDetail/index.vue` | 详情页封面右键定位 |
+| `views/Leaderboard/{index.vue,MusicList/index.vue,MusicList/useList.ts}` | 跨页定位 + 播放标识 |
+| `views/Leaderboard/scrollState.ts`（新） | 定位状态 + `toPageAndRow` + 安全滚动 |
+| `views/songList/Detail/{index.vue,useList.ts}` | 跨页定位 + 播放标识 |
+| `views/songList/Detail/scrollState.ts`（新） | 同上 |
+| `views/wy/DailyRec/index.vue` | 原始在线结构（修添加到歌单）+ 轮询定位 + 播放标识 + 详情页跳转 |
+| `store/user/{state,action}.ts` | 每日推荐缓存改为原始在线结构 |
+
+### 21.7 验证结果
+
+| 检查 | 结果 |
+|---|---|
+| `pnpm build` | ✅ 4 目标全 success，零 ERROR |
+| `pnpm test` | ✅ 164 断言全通过 |
+| 「添加到歌单」克隆修复 | ✅ Node 复现验证（修复前 FAIL / 修复后 OK） |
+| 来源解析四场景 | ✅ 我的列表（含残留来源）/排行榜/每日推荐/在线歌单 全部正确 |
+| 跨页换算 | ✅ 全局 199 → 第 7 页第 20 行 |
+| **用户实机验收** | ✅ **2026-10-26 反馈「暂无问题」** |
+
+### 21.8 已知遗留
+- **启动偶尔弹出 `The operation could not be performed and was aborted`**：
+  经核查 `request.js`（所有音源请求的公共通道）**从未被本轮修改**，最后一次改动是 v1.0.0 发布提交；
+  该异常来自切歌/切页时主动 `cancelHttp()` → 底层 `abort()` 的 DOMException，
+  属**原版既有竞态**，偶发（复测未复现），不影响功能。按用户要求未做改动。

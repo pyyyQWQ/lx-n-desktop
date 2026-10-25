@@ -31,7 +31,14 @@
                 class="list-item" :class="[{ selected: rightClickSelectedIndex == index }, { active: selectedList.includes(item) }]"
                 @click="handleListItemClick($event, index)" @contextmenu="handleListItemRightClick($event, index)"
               >
-                <div class="list-item-cell no-select num" style="flex: 0 0 5%;" @click.stop>{{ index + 1 }}</div>
+                <div class="list-item-cell no-select" :class="$style.numCell" style="flex: 0 0 5%;" @click.stop>
+                  <div v-if="isCurrentPlaying(index)" :class="$style.playIcon">
+                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xlink="http://www.w3.org/1999/xlink" height="50%" viewBox="0 0 512 512" space="preserve">
+                      <use xlink:href="#icon-play-outline" />
+                    </svg>
+                  </div>
+                  <div v-else class="num">{{ index + 1 }}</div>
+                </div>
                 <div class="list-item-cell auto name">
                   <span class="select name" :aria-label="item.name">{{ item.name }}</span>
                   <span v-if="item.meta._qualitys.flac24bit" class="no-select badge badge-theme-primary">{{ $t('tag__lossless_24bit') }}</span>
@@ -59,7 +66,14 @@
                 class="list-item" :class="[{ selected: rightClickSelectedIndex == index }, { active: selectedList.includes(item) }]"
                 @click="handleListItemClick($event, index)" @contextmenu="handleListItemRightClick($event, index)"
               >
-                <div class="list-item-cell no-select num" style="flex: 0 0 5%;" @click.stop>{{ index + 1 }}</div>
+                <div class="list-item-cell no-select" :class="$style.numCell" style="flex: 0 0 5%;" @click.stop>
+                  <div v-if="isCurrentPlaying(index)" :class="$style.playIcon">
+                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xlink="http://www.w3.org/1999/xlink" height="50%" viewBox="0 0 512 512" space="preserve">
+                      <use xlink:href="#icon-play-outline" />
+                    </svg>
+                  </div>
+                  <div v-else class="num">{{ index + 1 }}</div>
+                </div>
                 <div class="list-item-cell auto name">
                   <span class="select name" :aria-label="item.name">{{ item.name }}</span>
                   <span v-if="item.meta._qualitys.flac24bit" class="no-select badge badge-theme-primary">{{ $t('tag__lossless_24bit') }}</span>
@@ -109,6 +123,9 @@ import useMusicDownload from './useMusicDownload'
 import useMusicAdd from './useMusicAdd'
 import useMusicActions from './useMusicActions'
 import { appSetting } from '@renderer/store/setting'
+import { tempListMeta } from '@renderer/store/list/state'
+import { playInfo } from '@renderer/store/player/state'
+import { LIST_IDS } from '@common/constants'
 export default {
   name: 'MaterialOnlineList',
   props: {
@@ -141,6 +158,24 @@ export default {
     checkApiSource: {
       type: Boolean,
       default: false,
+    },
+    /**
+     * 当前正在播放的来源列表 id（可选）。
+     * 传入后，若与 store 中记录的播放来源（tempListMeta.id）一致，
+     * 序号列会把当前播放项显示为播放图标。默认 null = 不显示（其他在线列表行为不变）。
+     */
+    playingListId: {
+      type: String,
+      default: null,
+    },
+    /**
+     * 当前页之前已省略的行数（分页列表用）。
+     * 用于把「页内行号」换算成「全局行号」再与 playInfo.playIndex 比较，
+     * 否则第 2 页及以后无法标出正在播放的那首。
+     */
+    playingIndexOffset: {
+      type: Number,
+      default: 0,
     },
   },
   emits: ['show-menu', 'play-list', 'togglePage'],
@@ -246,8 +281,36 @@ export default {
           break
       }
     }
+    /** 当前滚动位置（用于校验定位是否真的生效）。 */
+    const getScrollTop = () => {
+      try { return listRef.value?.getScrollTop?.() ?? 0 } catch (_) { return 0 }
+    }
+
     const scrollToTop = () => {
       listRef.value.scrollTo(0, true)
+    }
+
+    /**
+     * 滚动到指定行（供外部「定位当前播放」使用）。
+     * offset 为负值时向上留出空间，让目标行不贴边。
+     */
+    const scrollToIndex = (index, offset = -150, animate = false) => {
+      if (!listRef.value?.scrollToIndex) return
+      // 传入 onScrollEnd 回调，让 VirtualizedList 走「直接设置 scrollTop」分支。
+      // 不传回调时它用 scrollTo({behavior:'instant'})，该 behavior 在部分 Chromium 版本
+      // 不被识别、会退化为默认行为导致滚动不生效 —— 这正是此前「跳到榜单但不定位」的原因。
+      listRef.value.scrollToIndex(index, offset, animate, () => {})
+    }
+
+    /**
+     * 判断某一行是否为「当前播放」。
+     * 仅在外部传入 playingListId、且它与当前播放来源（tempListMeta.id）一致时才生效，
+     * 因此不会影响排行榜/搜索等未传入该属性的在线列表。
+     */
+    const isCurrentPlaying = index => {
+      if (!props.playingListId) return false
+      if (tempListMeta.id !== props.playingListId) return false
+      return playInfo.playerListId === LIST_IDS.TEMP && playInfo.playIndex === (index + (props.playingIndexOffset || 0))
     }
 
     return {
@@ -278,7 +341,11 @@ export default {
       selectedDownloadMusicInfo,
 
       scrollToTop,
+      scrollToIndex,
+      getScrollTop,
       actionButtonsVisible,
+
+      isCurrentPlaying,
     }
   },
 }
@@ -287,6 +354,27 @@ export default {
 
 <style lang="less" module>
 @import '@renderer/assets/styles/layout.less';
+// 序号列：作为播放图标的定位基准（缺失会导致图标跑到别处、序号位置空白）。
+// 注意用独立类名 numCell，避免与全局 .num / layout.less 中的同名类冲突被覆盖。
+.numCell {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.playIcon {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-button-font);
+  opacity: 0.7;
+}
 .songList {
   overflow: hidden;
   height: 100%;

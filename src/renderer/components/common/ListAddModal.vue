@@ -18,7 +18,7 @@
 
 <script>
 // import { mapMutations } from 'vuex'
-import { watch, ref, onBeforeUnmount } from '@common/utils/vueTools'
+import { watch, ref, onBeforeUnmount, toRaw } from '@common/utils/vueTools'
 import { defaultList, loveList, userLists } from '@renderer/store/list/state'
 import { addListMusics, moveListMusics, createUserList, getMusicExistListIds } from '@renderer/store/list/action'
 import useKeyDown from '@renderer/utils/compositions/useKeyDown'
@@ -101,7 +101,10 @@ export default {
       }
       if (!props.musicInfo) return lists.value = []
 
-      currentMusicInfo.value = 'progress' in props.musicInfo ? props.musicInfo.metadata.musicInfo : props.musicInfo
+      // 必须用 toRaw 解掉 Vue 的响应式代理：IPC 的结构化克隆无法复制 Proxy，
+      // 否则 addListMusics 会抛 'An object could not be cloned'（排行榜/歌单详情等在线列表均受影响）。
+      const raw = 'progress' in props.musicInfo ? props.musicInfo.metadata.musicInfo : props.musicInfo
+      currentMusicInfo.value = toRaw(raw)
 
       getList()
 
@@ -151,8 +154,10 @@ export default {
           : width < 3840 ? 5 : 6
     },
     handleClick(index) {
-      if (this.isMove) void moveListMusics(this.fromListId, this.lists[index].id, [this.currentMusicInfo])
-      else void addListMusics(this.lists[index].id, [this.currentMusicInfo])
+      // 传入 IPC 前再次 toRaw：深层引用（如 meta）也可能被代理，双保险避免克隆失败
+      const musicInfo = toRaw(this.currentMusicInfo)
+      if (this.isMove) void moveListMusics(this.fromListId, this.lists[index].id, [musicInfo])
+      else void addListMusics(this.lists[index].id, [musicInfo])
 
       this.lists[index].isExist = true
       if (this.keyModDown && !this.isMove) return

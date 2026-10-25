@@ -30,12 +30,13 @@
       <div v-else :class="$style.songsWrap">
         <material-online-list
           ref="listRef"
-          :list="songs"
+          :list="displaySongs"
           :page="1"
-          :limit="songs.length"
-          :total="songs.length"
+          :limit="displaySongs.length"
+          :total="displaySongs.length"
           :no-item="''"
           :source-tag="true"
+          :playing-list-id="DAILY_REC_LIST_ID"
           @play-list="handlePlaySong"
         />
       </div>
@@ -60,8 +61,8 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, watch } from '@common/utils/vueTools'
-import { useRouter } from '@common/utils/vueRouter'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from '@common/utils/vueTools'
+import { useRouter, useRoute } from '@common/utils/vueRouter'
 import { toNewMusicInfo } from '@renderer/utils'
 import wyDailyRecApi from '@renderer/utils/musicSdk/wy/dailyRec'
 import { appSetting } from '@renderer/store/setting'
@@ -77,13 +78,19 @@ export default {
   name: 'WyDailyRec',
   setup() {
     const router = useRouter()
+    const route = useRoute()
     const activeTab = ref<'songs' | 'playlists'>('songs')
     const loading = ref(false)
     const loadFailed = ref(false)
     const listRef = ref<any>(null)
 
     const isLogined = computed(() => wyLoginStatus.value == 'logged-in')
+    // 注意：store 中保存的是**原始在线歌曲结构**（含 songmid/types 等旧字段），
+    // 因为 material-online-list 及其「添加到列表」弹窗依赖该结构取字段；
+    // 播放时才转换成播放器需要的 MusicInfo 新结构（见 handlePlaySong）。
     const songs = computed(() => wyDailyRecSongs)
+    // 列表渲染用：把原始结构转成新结构供组件展示（名称/歌手/时长等）
+    const displaySongs = computed(() => songs.value.map(item => toNewMusicInfo(item)))
     const playlists = computed(() => wyDailyRecPlaylists)
 
     const tabs = computed(() => [
@@ -94,8 +101,8 @@ export default {
     const loadSongs = async() => {
       const cookie = appSetting['common.wy_cookie'] || ''
       const result = await wyDailyRecApi.getList(cookie)
-      const list = result.list.map(item => toNewMusicInfo(item))
-      setWyDailyRecSongs(list)
+      // 保存原始结构：列表组件与「添加到列表」弹窗依赖它取字段（songmid/types 等）
+      setWyDailyRecSongs(result.list)
     }
 
     const loadPlaylists = async() => {
@@ -128,10 +135,80 @@ export default {
       activeTab.value = tab
     }
 
+    /**
+     * 「定位当前播放」：路由带 scrollIndex 时，在列表渲染完成后滚动到该行。
+     *
+     * 用轮询而非只监听列表长度变化：若数据已缓存在 store 中、长度没有变化，
+     * watch 不会触发，就会漏掉定位。这里只要「实例 + 数据」都就绪就滚，
+     * 成功后停止；最多约 3 秒，超时放弃，避免影响正常浏览。
+     */
+    let pendingScrollIndex: number | null = null
+    let scrollTimer: number | null = null
+    let scrollTries = 0
+
+    const stopScrollRetry = () => {
+      if (scrollTimer != null) {
+        clearInterval(scrollTimer)
+        scrollTimer = null
+      }
+    }
+
+    const tryScroll = () => {
+      if (pendingScrollIndex == null) return
+      const total = displaySongs.value.length
+      if (!total) return
+      const target = pendingScrollIndex
+      if (target < 0 || target >= total) {
+        pendingScrollIndex = null
+        stopScrollRetry()
+        return
+      }
+      const list = listRef.value
+      if (!list) return
+      try {
+        // 非动画滚动，避免平滑滚动在元素销毁时抛 DOMException
+        // 传 onScrollEnd 回调：让 VirtualizedList 走「直接设置 scrollTop」分支（否则 behavior:'instant' 可能不生效）
+        list.scrollToIndex(target, -150, false, () => {})
+        pendingScrollIndex = null
+        stopScrollRetry()
+      } catch (err) {
+        console.warn('[scroll] 定位失败（已忽略）:', err)
+        pendingScrollIndex = null
+        stopScrollRetry()
+      }
+    }
+
+    const startScrollRetry = () => {
+      if (pendingScrollIndex == null || scrollTimer != null) return
+      scrollTries = 0
+      const tick = () => {
+        scrollTries++
+        tryScroll()
+        if (pendingScrollIndex == null || scrollTries > 30) stopScrollRetry()
+      }
+      setTimeout(() => {
+        tick()
+        if (pendingScrollIndex != null && scrollTimer == null) scrollTimer = window.setInterval(tick, 100)
+      }, 60)
+    }
+
+    // 读取路由参数
+    {
+      const raw = route.query.scrollIndex
+      const num = raw == null || raw === '' ? NaN : Number(raw)
+      pendingScrollIndex = Number.isNaN(num) ? null : num
+    }
+
+    onMounted(startScrollRetry)
+    watch(() => displaySongs.value.length, startScrollRetry)
+    onBeforeUnmount(stopScrollRetry)
+
     const handlePlaySong = (index: number) => {
       const list = songs.value
       if (!list.length) return
-      void setTempList(DAILY_REC_LIST_ID, [...list] as LX.Music.MusicInfoOnline[]).then(() => {
+      // 播放需要 MusicInfo 新结构，此处转换；列表展示与「添加到列表」仍用原始结构
+      const playList_ = list.map(item => toNewMusicInfo(item)) as LX.Music.MusicInfoOnline[]
+      void setTempList(DAILY_REC_LIST_ID, playList_).then(() => {
         playList(LIST_IDS.TEMP, index)
       })
     }
@@ -160,10 +237,12 @@ export default {
     })
 
     return {
+      DAILY_REC_LIST_ID,
       isLogined,
       activeTab,
       tabs,
       songs,
+      displaySongs,
       playlists,
       loading,
       loadFailed,

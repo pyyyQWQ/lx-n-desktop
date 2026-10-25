@@ -10,7 +10,7 @@ transition(enter-active-class="animated slideInRight" leave-active-class="animat
       div.left(:class="$style.left")
         //- div(:class="$style.info")
         div(:class="$style.info")
-          img(v-if="musicInfo.pic" :class="$style.img" :src="musicInfo.pic")
+          img(v-if="musicInfo.pic" :class="$style.img" :src="musicInfo.pic" @contextmenu.stop="handleToMusicLocation")
           div.description(:class="['scroll', $style.description]")
             p {{ $t('player__music_name') }}{{ musicInfo.name }}
             p {{ $t('player__music_singer') }}{{ musicInfo.singer }}
@@ -34,6 +34,7 @@ import {
   isShowPlayComment,
   musicInfo,
   playMusicInfo,
+  playInfo,
 } from '@renderer/store/player/state'
 import {
   setShowPlayerDetail,
@@ -48,6 +49,8 @@ import ControlBtnsRightHeader from './ControlBtnsRightHeader.vue'
 import { registerAutoHideMounse, unregisterAutoHideMounse } from './autoHideMounse'
 import { appSetting } from '@renderer/store/setting'
 import { closeWindow, maxWindow, minWindow, setFullScreen } from '@renderer/utils/ipc'
+import { useRouter } from '@common/utils/vueRouter'
+import { resolveMusicLocation } from '@renderer/components/layout/PlayBar/useMusicLocation'
 
 export default {
   name: 'CorePlayDetail',
@@ -59,6 +62,7 @@ export default {
     MusicComment,
   },
   setup() {
+    const router = useRouter()
     const visibled = ref(false)
 
     let clickTime = 0
@@ -66,6 +70,18 @@ export default {
     const hide = () => {
       setShowPlayerDetail(false)
     }
+    /**
+     * 播放详情页封面右键：回到当前歌曲的播放来源页并定位。
+     * 与底部播放栏封面右键共用 resolveMusicLocation，行为保持一致。
+     * 用 .stop 阻断冒泡，避免触发本容器的「右键双击关闭详情页」。
+     */
+    const handleToMusicLocation = () => {
+      if (!playMusicInfo.musicInfo) return
+      const target = resolveMusicLocation(playMusicInfo.listId, playInfo.playIndex)
+      if (!target) return
+      void router.push({ path: target.path, query: target.query })
+    }
+
     const handleContextMenu = () => {
       if (window.performance.now() - clickTime > 400) {
         clickTime = window.performance.now()
@@ -106,6 +122,7 @@ export default {
       musicInfo,
       hide,
       handleContextMenu,
+      handleToMusicLocation,
       hideComment,
       handleAfterEnter,
       handleAfterLeave,

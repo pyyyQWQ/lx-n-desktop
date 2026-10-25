@@ -20,6 +20,7 @@ import MusicList from './MusicList/index.vue'
 import { sources } from '@renderer/store/leaderboard/state'
 import { sourceNames } from '@renderer/store'
 import { useRoute, useRouter } from '@common/utils/vueRouter'
+import { setPendingScrollIndex } from './scrollState'
 
 
 const source = ref('')
@@ -44,6 +45,8 @@ const verifyQueryParams = async function(to, from, next) {
   next()
   source.value = _source
   boardId.value = _boardId
+  // 「定位当前播放」：路由带 scrollIndex 时，列表加载后滚到该行
+  setPendingScrollIndex(to.query.scrollIndex)
   void setLeaderboardSetting({ source: _source, boardId: _boardId })
 }
 

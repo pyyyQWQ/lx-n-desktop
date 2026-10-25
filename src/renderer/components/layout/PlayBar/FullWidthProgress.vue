@@ -46,6 +46,7 @@
 <script>
 import { computed } from '@common/utils/vueTools'
 import { useRouter } from '@common/utils/vueRouter'
+import { resolveMusicLocation } from './useMusicLocation'
 import { clipboardWriteText } from '@common/utils/electron'
 import ControlBtns from './ControlBtns.vue'
 // import PlayProgress from './PlayProgress'
@@ -65,7 +66,6 @@ import {
 } from '@renderer/store/player/action'
 import { appSetting } from '@renderer/store/setting'
 import { togglePlay, playNext, playPrev } from '@renderer/core/player'
-import { LIST_IDS } from '@common/constants'
 import { formatMusicName } from '@renderer/utils'
 
 export default {
@@ -99,16 +99,11 @@ export default {
     }
 
     const handleToMusicLocation = () => {
-      const listId = playMusicInfo.listId
-      if (!listId || listId == LIST_IDS.DOWNLOAD || !playMusicInfo.musicInfo) return
-      if (playInfo.playIndex == -1) return
-      void router.push({
-        path: '/list',
-        query: {
-          id: listId,
-          scrollIndex: playInfo.playIndex,
-        },
-      })
+      if (!playMusicInfo.musicInfo) return
+      // 按播放来源解析目标页：每日推荐 / 排行榜 / 在线歌单详情 / 我的列表
+      const target = resolveMusicLocation(playMusicInfo.listId, playInfo.playIndex)
+      if (!target) return
+      void router.push({ path: target.path, query: target.query })
     }
 
     const title = computed(() => {
