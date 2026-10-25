@@ -126,7 +126,13 @@ export const applyElectronEnvParams = () => {
 
 export const setUserDataPath = () => {
   // 独立版使用专属 userData 目录，与原版 lx-music-desktop 完全隔离。
+  // 注意：开发模式额外使用 `-dev` 后缀的目录，避免开发调试污染正式版的数据
+  // （两者若共用同一目录，开发版改坏的设置/Cookie/歌单会直接影响用户正式使用）。
+  // 正式打包（NODE_ENV === 'production'）仍使用原目录名，不影响已发布版本的升级路径。
   const INDEPENDENT_USER_DATA_NAME = 'lx-netease-music-desktop'
+  const isDev = process.env.NODE_ENV !== 'production'
+  const DEV_USER_DATA_NAME = `${INDEPENDENT_USER_DATA_NAME}-dev`
+  const targetUserDataName = isDev ? DEV_USER_DATA_NAME : INDEPENDENT_USER_DATA_NAME
   let isPortable = false
   // windows 平台下如果应用目录下存在 portable 文件夹，或将 portable 单文件版放在任意目录运行，
   // 则将数据保存在可执行文件旁的独立目录，避免写入用户的正式安装数据。
@@ -143,7 +149,7 @@ export const setUserDataPath = () => {
 
   // 非 portable（默认安装/开发）模式下强制使用独立 userData 目录
   if (!isPortable) {
-    const defaultUserData = path.join(app.getPath('appData'), INDEPENDENT_USER_DATA_NAME)
+    const defaultUserData = path.join(app.getPath('appData'), targetUserDataName)
     if (app.getPath('userData') != defaultUserData) app.setPath('userData', defaultUserData)
   }
 

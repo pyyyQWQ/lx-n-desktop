@@ -1242,3 +1242,43 @@ node build-config/build-pack.js target=win arch=x64 type=portable
   经核查 `request.js`（所有音源请求的公共通道）**从未被本轮修改**，最后一次改动是 v1.0.0 发布提交；
   该异常来自切歌/切页时主动 `cancelHttp()` → 底层 `abort()` 的 DOMException，
   属**原版既有竞态**，偶发（复测未复现），不影响功能。按用户要求未做改动。
+---
+
+## 22. 开发版数据目录隔离（2026-10-26 00:23–00:35，第 12 轮）
+
+### 22.1 问题
+用户发现**开发版与正式版共用同一套设置/数据**（同一份 `%APPDATA%\lx-netease-music-desktop\LxDatas`），
+开发调试会污染正式使用的数据。
+
+### 22.2 根因
+`src/main/app.ts` 的 `setUserDataPath()` 中，`INDEPENDENT_USER_DATA_NAME` 恒为 `lx-netease-music-desktop`，
+**没有区分开发模式与正式打包**。开发版（`pnpm run dev`）运行时也把 userData 指向该目录，
+而正式安装版同样使用该目录 → 两者共用一份配置、Cookie、歌单数据库。
+
+### 22.3 修复（仅开发模式隔离，正式版路径不变）
+`src/main/app.ts`：
+- 新增 `isDev = process.env.NODE_ENV !== 'production'`
+- 开发模式使用 `lx-netease-music-desktop-dev`，正式打包仍使用 `lx-netease-music-desktop`
+
+```js
+const isDev = process.env.NODE_ENV !== 'production'
+const targetUserDataName = isDev ? `${INDEPENDENT_USER_DATA_NAME}-dev` : INDEPENDENT_USER_DATA_NAME
+```
+
+便携版（portable）逻辑未改动（仍在 exe 旁 `userData`）。
+
+### 22.4 验证（实际执行）
+| 检查 | 结果 |
+|---|---|
+| `pnpm build`（生产） | ✅ 4 目标成功；产物中 dev 分支被编译期消除，仅保留正式目录名（正式版行为不变） |
+| 启动开发版 | ✅ 自动创建 `%APPDATA%\lx-netease-music-desktop-dev\`，dev 用新目录 |
+| 正式版目录未被改写 | ✅ 正式版 `config_v2.json` 修改时间停留在启动前（00:21:01），未被 dev 触碰 |
+| `pnpm test` | ✅ 164 断言通过 |
+
+### 22.5 影响与说明
+- **开发版现在是一份全新数据**：需要重新登录网易云、重新配置自定义音源（符合隔离目的）。
+- **正式版不受影响**：已安装的 v1.1.0 仍使用原目录，升级路径不变。
+- 目录位置：
+  - 开发版：`%APPDATA%\lx-netease-music-desktop-dev\LxDatas`
+  - 正式版：`%APPDATA%\lx-netease-music-desktop\LxDatas`
+  - 便携版：`<便携 exe 目录>\userData\LxDatas`
