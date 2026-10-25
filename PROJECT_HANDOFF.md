@@ -5,6 +5,116 @@
 
 ---
 
+## 0. ⚡ 当前状态速览（新对话请先读这一节）
+
+> 最后更新：2026-10-26 00:50（第 12 轮结束时）
+> 本节是给"接手的 AI"看的精简入口。**读完本节即可直接干活**，后面 §1–§22 是历史过程记录，按需查阅即可。
+
+### 0.1 一句话现状
+
+LX-N Desktop（基于 lx-music-desktop v1.0.0 的独立构建）**已发布 1.1.0**；
+1.1.0 之后又完成了两批修复（品牌署名、实机 bug 修复、开发版数据目录隔离），**这些修复尚未打包发布**。
+当前代码库**工作区干净**，所有改动均已提交。
+
+### 0.2 路径与版本
+
+| 项 | 值 |
+|---|---|
+| 新项目（当前开发目录） | `C:\Users\PY\Desktop\LX-N-Desktop-NEW` |
+| 旧项目（**只读参考，禁止修改**） | `C:\Users\PY\Desktop\LX-n-desktop\lx-netease-music-desktop` |
+| 旧交接文档 | `C:\Users\PY\Desktop\LX-n-desktop\PROJECT_HANDOFF.md` |
+| 上游仓库 | `https://github.com/lyswhut/lx-music-desktop` |
+| 本项目仓库 | `https://github.com/pyyyQWQ/lx-n-desktop` |
+| 基线版本 | GitHub tag `v1.0.0` → commit `15bb7230` |
+| 当前分支 | `baseline-v1.0` |
+
+### 0.3 提交历史（最新在上）
+
+```
+849da9e  fix: 开发版使用独立数据目录，避免污染正式版        ← 未打包
+a42a4b0  fix: 修复 1.1.0 实机使用的定位/播放标识/添加到歌单问题  ← 未打包
+43611c4  chore: 品牌署名与文档完善                        ← 未打包
+a25f976  release: LX-N v1.1.0 Windows 正式版              ← 已发布（tag v1.1.0 已推送）
+15bb723  release: LX-N v1.0.0 Windows 正式版              ← 已发布（tag v1.0.0）
+```
+
+> ⚠️ **重要**：`build/` 里现有的两个 exe 是 **v1.1.0 发布时**打的包，**不含** `43611c4`/`a42a4b0`/`849da9e` 三个提交的修复。
+
+### 0.4 功能完成度
+
+| 功能 | 状态 |
+|---|---|
+| 网易云登录（网页登录 + Cookie） | ✅ v1.0.0 已有，从未改动 |
+| 我的网易云歌单 / 喜欢 | ✅ v1.0.0 已有 |
+| **每日推荐（歌曲 + 歌单 + 播放）** | ✅ 已迁移，实机验证 |
+| **独立版更新源 + 手动检查更新** | ✅ 已迁移，GUI 实测 |
+| **WebDAV 歌单同步（仅歌单）** | ✅ 已迁移，实测通过 |
+| 品牌化（图标、署名、链接） | ✅ 已全量替换 |
+| 开发版数据目录隔离 | ✅ 已做（dev 用 `-dev` 后缀） |
+| 设置/自定义音源同步 | ❌ 已实现后按用户决定**移除**（见 §16） |
+
+### 0.5 下一步该做什么（按优先级）
+
+1. **重新打包发布**（最高优先级）：把 `43611c4` + `a42a4b0` + `849da9e` 的修复打进新版本（建议 `1.1.1`，或继续开发后一起发）。打包方式沿用 §19 记录。
+2. 继续开发新功能（用户尚未指定，需询问）。
+3. 可选增强：每日推荐自动存歌单、列表变更级自动同步（详见 §A9）。
+
+### 0.6 环境速查（必须）
+
+```powershell
+# node/pnpm 不在系统 PATH，每个新 shell 都要加
+$env:PATH = 'C:\Users\PY\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin;' + $env:PATH
+$N = 'C:\Users\PY\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe'
+$P = 'C:\Users\PY\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\pnpm\bin\pnpm.mjs'
+
+& $N $P test        # 164 断言
+& $N $P test:webdav # WebDAV 传输 + 数据安全
+& $N $P build       # 生产构建（4 目标）
+```
+
+- **启动开发版**：双击 `启动开发版.bat`（会自动清除 `ELECTRON_RUN_AS_NODE`）
+- **打包**：`node build-config/build-pack.js target=win arch=x64 type=setup` / `type=portable`
+  - 需 `$env:ELECTRON_BUILDER_BINARIES_MIRROR='https://registry.npmmirror.com/-/binary/electron-builder-binaries/'`
+  - `winCodeSign` 若下载失败，见 §19.4 的处理方式
+
+### 0.7 已踩过的坑（**不要重复排查**）
+
+| 现象 | 真实原因 | 已验证的解法 |
+|---|---|---|
+| dev 窗口不弹 / 音频设备为空 | 环境变量 `ELECTRON_RUN_AS_NODE=1` 让 Electron 变纯 Node | `启动开发版.bat` 启动前清除 |
+| 端口 9080 被占用 | 上次 dev 进程没清理 | 杀掉占用 9080/9081/5858 的 node/electron |
+| 下载设置后白屏 `reading 'search'` | 手机端同步来的 `langId` 是 `zh_cn`（下划线），桌面端是 `zh-cn` | `i18n.ts` 已加语言校验与空值兜底（**不要删这段**） |
+| 添加到歌单报 `An object could not be cloned` | IPC 传了 Vue 响应式 Proxy | `ListAddModal` 用 `toRaw` 解代理 |
+| 序号列三角空白 | 模板用全局类 `num`、样式写在 CSS Module，对不上导致图标无定位基准 | 模板用 `:class="$style.numCell"` |
+| 定位只回到页面顶部 | ①数据缓存短路跳过回调 ②`behavior:'instant'` 失效 ③调用即判成功未校验 | 轮询重试 + 传 onScrollEnd 回调 + 读回 scrollTop 校验（详见 §21.5） |
+| 「我的列表」定位跳到错误页面 | `tempListMeta` 残留上次在线播放来源 | 先判 `playMusicInfo.listId !== temp`（详见 §21.3） |
+| 排行榜定位报 `reading 'list'` | `boardId` 只传了纯数字，内部 `split('__')` 取不到 source | 传完整 `source__boardId`（详见 §21.3） |
+| 启动偶发 `operation ... aborted` | 原版既有的请求取消竞态（`request.js` 从未改动） | 已知遗留，不影响功能，未修 |
+
+### 0.8 铁律（务必遵守）
+
+- **旧项目只读**，不修改、不覆盖、不清理
+- **禁止** `git reset --hard` / `git clean` / 强制切分支
+- **未经用户明确授权不得** commit / push / 发布 Release
+- 不要重新引入 **WebDAV 之外的旧未提交改动**
+- 不要重复开发**网易云登录**（v1.0.0 已内置）
+- 文档、日志、代码中**不得出现真实 Cookie / 密码 / Token**
+- 声称"已验证"前必须真的跑过；未验证的要明确标注
+
+### 0.9 备份
+
+| 用途 | 路径 |
+|---|---|
+| Bug 修复前 | `C:\Users\PY\Desktop\LX-N-Desktop-PRE-BUGFIX-20261025-0245` |
+| 数据目录改动前 | `C:\Users\PY\Desktop\LX-N-Desktop-PRE-USERDATA-20261026-0030` |
+| 1.1.0 发布前 | `C:\Users\PY\Desktop\LX-N-Desktop-PRE-RELEASE-110-20261024-0058` |
+| 品牌署名前 | `C:\Users\PY\Desktop\LX-N-Desktop-PRE-BRAND2-20261025-0108` |
+| 图标替换前 | `C:\Users\PY\Desktop\LX-N-Desktop-PRE-ICON-20261023-2352` |
+| WebDAV 前 | `C:\Users\PY\Desktop\LX-N-Desktop-PRE-WEBDAV-20261023-2105` |
+| 旧项目备份 | `C:\Users\PY\Desktop\LX-n-desktop-baseline-backup-20261023-1935` |
+
+---
+
 ## 1. 一句话状态
 
 - **已建立全新 v1.0 开发基线**并验证：依赖安装、`pnpm test`、`pnpm run dev`（编译 + webpack-dev-server + **真实 GUI 窗口启动**）、`pnpm build`（4 目标）均正常。
