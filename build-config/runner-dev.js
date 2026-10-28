@@ -184,7 +184,13 @@ function startElectron() {
     args = args.concat(process.argv.slice(2))
   }
 
-  electronProcess = spawn(electron, args)
+  // 必须从子进程环境里「删除」ELECTRON_RUN_AS_NODE。
+  // 该变量若为 1（常见于由 Node/工具链间接启动的终端），Electron 会退化成纯 Node，
+  // 结果是：dev server 正常、但窗口不出现、5858 也不监听。
+  const childEnv = { ...process.env }
+  delete childEnv.ELECTRON_RUN_AS_NODE
+
+  electronProcess = spawn(electron, args, { env: childEnv })
 
   electronProcess.stdout.on('data', data => {
     electronLog(data, 'blue')
