@@ -285,6 +285,16 @@
   "player__volume": "볼륨: ",
   "player__volume_mute_label": "음소거",
   "player__volume_muted": "음소거됨",
+  "quality__128k": "128K",
+  "quality__192k": "192K",
+  "quality__320k": "320K",
+  "quality__flac": "FLAC",
+  "quality__ape": "APE",
+  "quality__wav": "WAV",
+  "quality__hires": "Hires Lossless 24-Bit",
+  "quality__atmos": "Hi-Res",
+  "quality__atmos_plus": "Hi-Res 2.0",
+  "quality__master": "Master",
   "search": "검색",
   "search__hot_search": "인기 검색어",
   "search__type_music": "노래",
@@ -659,6 +669,7 @@
   "sync__overwrite_tip": "덮어쓰기: ",
   "sync_status_disabled": "연결 안 됨",
   "tag__high_quality": "HQ",
+  "tag__hires": "Hi-Res",
   "tag__lossless": "SQ",
   "tag__lossless_24bit": "24bit",
   "theme_add": "테마 추가",
@@ -815,5 +826,6 @@
   "setting__sync_webdav_upload_failed": "업로드 실패: {message}",
   "setting__sync_webdav_download_failed": "다운로드 실패: {message}",
   "setting__sync_webdav_sync_failed": "동기화 실패: {message}",
-  "setting__sync_webdav_cancelled": "작업이 취소되었습니다"
+  "setting__sync_webdav_cancelled": "작업이 취소되었습니다",
+  "download__quality_loading": "음질 정보를 불러오는 중…"
 }

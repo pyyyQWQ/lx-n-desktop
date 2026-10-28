@@ -38,7 +38,7 @@ dd
   div
     base-checkbox.gap-left(
       v-for="item in playQualityList" :id="`setting_play_quality_${item}`" :key="item"
-      name="setting_play_quality" need :model-value="appSetting['player.playQuality']" :value="item" :label="item"
+      name="setting_play_quality" need :model-value="appSetting['player.playQuality']" :value="item" :label="getPlayQualityLabel(item)"
       @update:model-value="updateSetting({'player.playQuality': $event})")
 
 dd(:aria-label="$t('setting__play_mediaDevice_title')")
@@ -55,7 +55,8 @@ import { useI18n } from '@renderer/plugins/i18n'
 import { appSetting, saveMediaDeviceId, updateSetting } from '@renderer/store/setting'
 import { setPowerSaveBlocker } from '@renderer/core/player/utils'
 import { isPlay } from '@renderer/store/player/state'
-import { TRY_QUALITYS_LIST } from '@renderer/core/music/utils'
+import { PLAY_QUALITY_OPTIONS } from '@common/constants'
+import { getQualityLabel } from '@common/utils/quality'
 import { isMac } from '@common/utils'
 
 
@@ -63,7 +64,11 @@ export default {
   name: 'SettingPlay',
   setup() {
     const t = useI18n()
-    const playQualityList = [...TRY_QUALITYS_LIST, '128k'].reverse()
+    // 由低到高排列，页面 reverse 后呈现「高 → 低」，与原版一致。
+    // 改版新增 hires / atmos / master 三档，共 7 项。
+    const playQualityList = [...PLAY_QUALITY_OPTIONS].reverse()
+
+    const getPlayQualityLabel = (quality) => getQualityLabel(quality, t)
 
     const mediaDevices = ref([])
     const getMediaDevice = async() => {
@@ -148,6 +153,7 @@ export default {
       isMaxOutputChannelCount,
       handleUpdateMaxOutputChannelCount,
       playQualityList,
+      getPlayQualityLabel,
       isMac,
     }
   },

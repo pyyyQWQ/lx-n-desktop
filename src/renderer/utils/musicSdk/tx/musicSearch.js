@@ -92,10 +92,28 @@ export default {
       }
       if (file.size_hires !== 0) {
         let size = sizeFormate(file.size_hires)
-        types.push({ type: 'flac24bit', size })
-        _types.flac24bit = {
+        types.push({ type: 'hires', size })
+        _types.hires = {
           size,
         }
+      }
+      // size_new 数组：0 -> master、1 -> atmos、2 -> atmos_plus（与移动改良版一致）
+      // 桌面端原实现未解析这些字段，导致搜索结果的音质列表缺少高音质档位。
+      const sizeNew = Array.isArray(file.size_new) ? file.size_new : []
+      if (sizeNew[0]) {
+        let size = sizeFormate(sizeNew[0])
+        types.push({ type: 'master', size })
+        _types.master = { size }
+      }
+      if (sizeNew[1]) {
+        let size = sizeFormate(sizeNew[1])
+        types.push({ type: 'atmos', size })
+        _types.atmos = { size }
+      }
+      if (sizeNew[2]) {
+        let size = sizeFormate(sizeNew[2])
+        types.push({ type: 'atmos_plus', size })
+        _types.atmos_plus = { size }
       }
       // types.reverse()
       let albumId = ''

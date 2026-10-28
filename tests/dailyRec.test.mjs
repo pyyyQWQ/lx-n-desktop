@@ -30,7 +30,8 @@ console.log('toOldSongInfo（每日推荐歌曲 → 旧结构）')
   assert('albumName / albumId 正确', out.albumName === '专辑X' && out.albumId === 9)
   assert('interval 格式化 03:30', out.interval === '03:30')
   assert('img 为专辑图', out.img === 'http://pic/x.jpg')
-  assert('有类型信息（flac24bit + 320k + 128k）', out.types.length === 3 && !!out._types.flac24bit && !!out._types['320k'] && !!out._types['128k'])
+  assert('有类型信息（hires + 320k + 128k）', out.types.length === 3 && !!out._types.hires && !!out._types['320k'] && !!out._types['128k'])
+  assert('flac24bit 已按手机版规则改名为 hires', !out._types.flac24bit)
   assert('有基础类型占位', out.types.every(t => !!t.type && t.type.length))
 }
 

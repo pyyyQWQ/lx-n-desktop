@@ -1,5 +1,56 @@
 // 业务工具方法
 
+/**
+ * 音质别名迁移：把旧/别名标识统一成移动改良版使用的标准标识。
+ *
+ * 与移动改良版 `toNewMusicInfo`（mobile `src/utils/index.ts` L59-97）完全一致：
+ *   flac32bit   -> hires
+ *   flac24bit   -> hires
+ *   effect      -> atmos
+ *   effect_plus -> atmos_plus
+ *
+ * 原因：网易云等音源的原始标识与界面标识不统一；若同时保留 flac / flac24bit / hires，
+ * 会出现三档指向同一文件、用户切换却无任何区别的问题。统一别名后每个档位才真实唯一。
+ *
+ * @param types  旧结构 `types` 数组（会就地修改 type 字段）
+ * @param _types 旧结构 `_types` 映射
+ */
+export const migrateQualityAlias = (types: any[], _types: Record<string, any>): void => {
+  const aliasMap: Array<[string, string]> = [
+    ['flac32bit', 'hires'],
+    ['flac24bit', 'hires'],
+    ['effect', 'atmos'],
+    ['effect_plus', 'atmos_plus'],
+  ]
+  for (const [from, to] of aliasMap) {
+    if (!_types[from]) continue
+    const hadTarget = Boolean(_types[to])
+    if (!hadTarget) {
+      // 只存在别名：迁移到标准标识
+      _types[to] = _types[from]
+    }
+    // 该字段名本身来自别名表，属于需要动态清理的键；用 Reflect.deleteProperty
+    // 避免 @typescript-eslint/no-dynamic-delete（语义与 delete 等价）
+    Reflect.deleteProperty(_types, from)
+
+    if (Array.isArray(types)) {
+      for (const item of types) {
+        if (item && item.type == from) item.type = to
+      }
+      // 两者并存时，数组里可能残留同 type 的重复项，需要去重
+      if (hadTarget) {
+        const seen = new Set<string>()
+        for (let i = types.length - 1; i >= 0; i--) {
+          const type = types[i]?.type
+          if (!type) continue
+          if (seen.has(type)) types.splice(i, 1)
+          else seen.add(type)
+        }
+      }
+    }
+  }
+}
+
 export const toNewMusicInfo = (oldMusicInfo: any): LX.Music.MusicInfo => {
   const meta: Record<string, any> = {
     songId: oldMusicInfo.songmid, // 歌曲ID，local为文件路径
@@ -22,15 +73,8 @@ export const toNewMusicInfo = (oldMusicInfo: any): LX.Music.MusicInfo => {
     meta.qualitys = oldMusicInfo.types
     meta._qualitys = oldMusicInfo._types
     meta.albumId = oldMusicInfo.albumId
-    if (meta._qualitys.flac32bit && !meta._qualitys.flac24bit) {
-      meta._qualitys.flac24bit = meta._qualitys.flac32bit
-      delete meta._qualitys.flac32bit
-
-      meta.qualitys = (meta.qualitys as any[]).map(quality => {
-        if (quality.type == 'flac32bit') quality.type = 'flac24bit'
-        return quality
-      })
-    }
+    // 音质别名统一（与移动改良版一致）
+    if (meta._qualitys) migrateQualityAlias(meta.qualitys, meta._qualitys)
 
     switch (oldMusicInfo.source) {
       case 'kg':
@@ -100,25 +144,17 @@ export const toOldMusicInfo = (minfo: LX.Music.MusicInfo) => {
 }
 
 /**
- * 修复2.0.0-dev.8之前的新列表数据音质
- * @param musicInfo
+ * 修复历史列表数据里的音质标识。
+ *
+ * 除原版的 flac32bit -> flac24bit 之外，现按移动改良版统一到标准标识：
+ *   flac24bit -> hires、effect -> atmos、effect_plus -> atmos_plus
+ * （迁移函数见 migrateQualityAlias）
  */
 export const fixNewMusicInfoQuality = (musicInfo: LX.Music.MusicInfo) => {
   if (musicInfo.source == 'local') return musicInfo
 
-  // @ts-expect-error
-  if (musicInfo.meta._qualitys.flac32bit && !musicInfo.meta._qualitys.flac24bit) {
-    // @ts-expect-error
-    musicInfo.meta._qualitys.flac24bit = musicInfo.meta._qualitys.flac32bit
-    // @ts-expect-error
-    delete musicInfo.meta._qualitys.flac32bit
-
-    musicInfo.meta.qualitys = musicInfo.meta.qualitys.map(quality => {
-      // @ts-expect-error
-      if (quality.type == 'flac32bit') quality.type = 'flac24bit'
-      return quality
-    })
-  }
+  const meta = musicInfo.meta as unknown as LX.Music.MusicInfoOnline['meta']
+  if (meta._qualitys) migrateQualityAlias(meta.qualitys, meta._qualitys)
 
   return musicInfo
 }

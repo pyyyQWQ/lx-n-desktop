@@ -207,7 +207,7 @@ export default {
       return formatMusicName(appSetting['download.fileName'], downloadInfo.metadata.musicInfo.name, downloadInfo.metadata.musicInfo.singer)
     }
     const getTypeName = (quality) => {
-      return quality == 'flac24bit' ? 'FLAC Hires' : quality?.toUpperCase()
+      return quality == 'hires' ? 'Hires 24-Bit' : quality?.toUpperCase()
     }
     return {
       listRef,

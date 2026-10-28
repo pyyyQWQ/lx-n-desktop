@@ -29,10 +29,27 @@ export const filterMusicInfoItem = item => {
   }
   if (item.file.size_hires !== 0) {
     let size = sizeFormate(item.file.size_hires)
-    types.push({ type: 'flac24bit', size })
-    _types.flac24bit = {
+    types.push({ type: 'hires', size })
+    _types.hires = {
       size,
     }
+  }
+  // size_new 数组：0 -> master、1 -> atmos、2 -> atmos_plus（与移动改良版一致）
+  const sizeNew = Array.isArray(item.file.size_new) ? item.file.size_new : []
+  if (sizeNew[0]) {
+    let s = sizeFormate(sizeNew[0])
+    types.push({ type: 'master', size: s })
+    _types.master = { size: s }
+  }
+  if (sizeNew[1]) {
+    let s = sizeFormate(sizeNew[1])
+    types.push({ type: 'atmos', size: s })
+    _types.atmos = { size: s }
+  }
+  if (sizeNew[2]) {
+    let s = sizeFormate(sizeNew[2])
+    types.push({ type: 'atmos_plus', size: s })
+    _types.atmos_plus = { size: s }
   }
 
   const albumId = item.album.id ?? ''

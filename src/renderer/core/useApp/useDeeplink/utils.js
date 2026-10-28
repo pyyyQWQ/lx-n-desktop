@@ -18,7 +18,8 @@ export const sourceVerify = source => {
   if (!sources.includes(source)) throw new Error('Source no match')
 }
 
-export const qualitys = ['128k', '320k', 'flac', 'flac24bit']
+// 深链接里允许透传的音质标识（改版扩展，与音源白名单保持一致）
+export const qualitys = ['128k', '320k', 'flac', 'hires', 'atmos', 'atmos_plus', 'master']
 export const qualityFilter = (source, types) => {
   types = types.filter(({ type }) => qualitys.includes(type)).map(({ type, size, hash }) => {
     if (size != null && typeof size != 'string') throw new Error(type + ' size type no match')

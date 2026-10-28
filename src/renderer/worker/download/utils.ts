@@ -36,7 +36,11 @@ export const getExt = (type: string): LX.Download.FileExt => {
     case 'ape':
       return 'ape'
     case 'flac':
-    case 'flac24bit':
+    // 高音质档位：Hi-Res / 空间音频 / 母带，实际下发基本都是 FLAC 容器
+    case 'hires':
+    case 'atmos':
+    case 'atmos_plus':
+    case 'master':
       return 'flac'
     case 'wav':
       return 'wav'
@@ -49,18 +53,20 @@ export const getExt = (type: string): LX.Download.FileExt => {
 }
 
 /**
- * 获取音乐音质
+ * 确定下载实际使用的音质：从目标档位沿 QUALITYS 降级链向下，取第一个「这首歌确实有」的档位。
+ *
+ * 与移动改良版一致：判断依据是歌曲自身的 `meta._qualitys`，不额外依赖音源声明列表。
  * @param musicInfo
  * @param type
  * @param qualityList
  */
 export const getMusicType = (musicInfo: LX.Music.MusicInfoOnline, type: LX.Quality, qualityList: LX.QualityList): LX.Quality => {
-  let list = qualityList[musicInfo.source]
+  const list = qualityList[musicInfo.source]
   if (!list) return '128k'
   if (!list.includes(type)) type = list[list.length - 1]
   const rangeType = QUALITYS.slice(QUALITYS.indexOf(type))
-  for (const type of rangeType) {
-    if (musicInfo.meta._qualitys[type]) return type
+  for (const t of rangeType) {
+    if (musicInfo.meta._qualitys?.[t]) return t as LX.Quality
   }
   return '128k'
 }

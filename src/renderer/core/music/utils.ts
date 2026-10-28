@@ -1,4 +1,3 @@
-import { qualityList } from '@renderer/store'
 import { assertApiSupport } from '@renderer/store/utils'
 import musicSdk from '@renderer/utils/musicSdk'
 import {
@@ -218,20 +217,34 @@ export const getOnlineOtherSourcePicByLocal = async(musicInfo: LX.Music.MusicInf
   })
 }
 
-export const TRY_QUALITYS_LIST = ['flac24bit', 'flac', '320k'] as const
-type TryQualityType = typeof TRY_QUALITYS_LIST[number]
+// 设置页「优先播放的音质」可选项（由低到高，页面会 reverse 成高→低）。
+// 与移动改良版一致：['master','atmos_plus','atmos','hires','flac','320k'] + '128k'
+export const TRY_QUALITYS_LIST = ['master', 'atmos_plus', 'atmos', 'hires', 'flac', '320k'] as const
+export type TryQualityType = typeof TRY_QUALITYS_LIST[number]
+
+/**
+ * 音质优先级排行（从高到低）。与移动改良版 `QUALITY_RANK` 完全一致。
+ * 注意：链路中**没有 flac24bit** —— 手机版把它统一改名为 hires。
+ */
+export const QUALITY_RANK: readonly LX.Quality[] = ['master', 'atmos_plus', 'atmos', 'hires', 'flac', '320k', '128k']
+
+/**
+ * 选出实际播放音质：从用户偏好档位开始，沿 QUALITY_RANK 向下找第一个「这首歌确实有」的档位。
+ *
+ * 与移动改良版 `getPlayQuality` 语义一致：**只依据歌曲自身的 `meta._qualitys`**，
+ * 不额外依赖音源声明的 qualityList。
+ */
 export const getPlayQuality = (highQuality: LX.Quality, musicInfo: LX.Music.MusicInfoOnline): LX.Quality => {
-  let type: LX.Quality = '128k'
-  if (TRY_QUALITYS_LIST.includes(highQuality as TryQualityType)) {
-    let list = qualityList.value[musicInfo.source]
+  const availableQualities = musicInfo.meta._qualitys
+  const startIndex = QUALITY_RANK.indexOf(highQuality)
+  // 偏好值不在榜单内（如无效值 / 本地音质）时，从最高档开始找
+  const searchIndex = startIndex === -1 ? 0 : startIndex
 
-    let t = TRY_QUALITYS_LIST
-      .slice(TRY_QUALITYS_LIST.indexOf(highQuality as TryQualityType))
-      .find(q => musicInfo.meta._qualitys[q] && list?.includes(q))
-
-    if (t) type = t
+  for (let i = searchIndex; i < QUALITY_RANK.length; i++) {
+    const quality = QUALITY_RANK[i]
+    if (availableQualities[quality]) return quality
   }
-  return type
+  return '128k'
 }
 
 export const getOnlineOtherSourceMusicUrl = async({ musicInfos, quality, onToggleSource, isRefresh, retryedSource = [] }: {
@@ -256,7 +269,8 @@ export const getOnlineOtherSourceMusicUrl = async({ musicInfos, quality, onToggl
     retryedSource.push(musicInfo.source)
     if (!assertApiSupport(musicInfo.source)) continue
     itemQuality = quality ?? getPlayQuality(appSetting['player.playQuality'], musicInfo)
-    if (!musicInfo.meta._qualitys[itemQuality]) continue
+    // 换源时需要确认这首歌在该源下确实有这个音质（与手机版一致：只看歌曲自身的 _qualitys）
+    if (!musicInfo.meta._qualitys?.[itemQuality]) continue
 
     console.log('try toggle to: ', musicInfo.source, musicInfo.name, musicInfo.singer, musicInfo.interval)
     onToggleSource(musicInfo)
@@ -288,6 +302,56 @@ export const getOnlineOtherSourceMusicUrl = async({ musicInfos, quality, onToggl
 /**
  * 获取在线音乐URL
  */
+/**
+ * 补全歌曲的完整音质信息（含 hires / atmos / atmos_plus / master 与文件大小）。
+ *
+ * 背景：内置 SDK 的搜索结果只带 privileges 能解析出的档位，通常只有 128k/320k/flac，
+ * 拿不到高音质档位。移动改良版的做法是打开下载弹窗时额外请求一次「音质详情」接口。
+ * 这里复用同一思路：
+ *   · 优先调用该源 SDK 的 `getMusicQualityInfo`（wy / tx 已实现）
+ *   · 其他源或失败时，原样返回传入的 musicInfo，保证调用方逻辑不受影响
+ *
+ * 结果会写回 `meta.qualitys` / `meta._qualitys`，并打上 `_full` 标记避免重复请求。
+ *
+ * @returns 补全后的 musicInfo（失败时返回原对象）
+ */
+export const fillFullQuality = async(musicInfo: LX.Music.MusicInfoOnline): Promise<LX.Music.MusicInfoOnline> => {
+  const meta = musicInfo.meta as LX.Music.MusicInfoOnline['meta'] & { _full?: boolean }
+  if (meta._full) return musicInfo
+
+  const sdk = musicSdk[musicInfo.source] as { getMusicQualityInfo?: (info: LX.Music.MusicInfoOnline) => Promise<{ types: any[], _types: Record<string, any> }> } | undefined
+  if (!sdk?.getMusicQualityInfo) {
+    meta._full = true
+    return musicInfo
+  }
+
+  try {
+    const info = await sdk.getMusicQualityInfo(musicInfo)
+    if (!info || !Array.isArray(info.types) || !info.types.length) {
+      meta._full = true
+      return musicInfo
+    }
+    // 合并：详情接口给出的档位为准，同时保留原有档位（按 type 去重）
+    const mergedTypes = [...(meta.qualitys ?? [])]
+    const mergedMap: Record<string, any> = { ...(meta._qualitys ?? {}) }
+    for (const item of info.types) {
+      if (!item?.type) continue
+      if (!mergedMap[item.type]) {
+        mergedMap[item.type] = info._types?.[item.type] ?? { size: item.size ?? null }
+        mergedTypes.push(item)
+      }
+    }
+    meta.qualitys = mergedTypes
+    meta._qualitys = mergedMap
+    meta._full = true
+    return musicInfo
+  } catch (err: any) {
+    console.log('[quality] 获取完整音质失败:', err?.message ?? err)
+    meta._full = true
+    return musicInfo
+  }
+}
+
 export const handleGetOnlineMusicUrl = async({ musicInfo, quality, onToggleSource, isRefresh, allowToggleSource }: {
   musicInfo: LX.Music.MusicInfoOnline
   quality?: LX.Quality

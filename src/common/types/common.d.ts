@@ -47,7 +47,21 @@ declare namespace LX {
 
   type OnlineSource = 'kw' | 'kg' | 'tx' | 'wy' | 'mg'
   type Source = OnlineSource | 'local'
-  type Quality = '128k' | '320k' | 'flac' | 'flac24bit' | '192k' | 'ape' | 'wav'
+  /**
+   * 音质标识。
+   *
+   * 与移动改良版（souvenp/lx-netease-music-mobile）完全对齐：
+   * `128k / 320k / flac / hires / atmos / atmos_plus / master`
+   *
+   * 关键：**不再使用 `flac24bit`**。手机版把它统一改名为 `hires`
+   * （见 mobile `src/utils/index.ts`：`flac24bit -> hires`、`effect -> atmos`、
+   *  `effect_plus -> atmos_plus`）。若保留 flac24bit，会出现 flac / flac24bit / hires
+   *  三档指向同一文件、用户切换却听不出区别的问题。
+   *
+   * 历史值兼容由 `migrateQuality` 在数据读取/转换时处理。
+   * 另保留 `192k/ape/wav` 用于本地文件与历史数据。
+   */
+  type Quality = '128k' | '320k' | 'flac' | 'hires' | 'atmos' | 'atmos_plus' | 'master' | '192k' | 'ape' | 'wav'
 
   type QualityList = Partial<Record<LX.Source, LX.Quality[]>>
 

@@ -79,6 +79,23 @@ export const DOWNLOAD_STATUS = {
   COMPLETED: 'completed',
 } as const
 
-export const QUALITYS = ['flac24bit', 'flac', 'wav', 'ape', '320k', '192k', '128k'] as const
+/**
+ * 音质降级链（从最高到最低）。
+ * `getMusicType`（下载）用它做「目标音质不可用时向下回退」的查找表，因此顺序即优先级。
+ *
+ * 与移动改良版 `QUALITY_RANK` 对齐：
+ *   master -> atmos_plus -> atmos -> hires -> flac -> 320k -> 128k
+ * 注意链路中**没有 flac24bit**：手机版把 flac24bit 统一视为 hires。
+ * wav / ape / 192k 仅用于本地文件与历史数据，排在无损之后。
+ */
+export const QUALITYS = ['master', 'atmos_plus', 'atmos', 'hires', 'flac', 'wav', 'ape', '320k', '192k', '128k'] as const
+
+/**
+ * 设置页「优先播放的音质」可选项（由低到高，设置页会 reverse 渲染成高→低）。
+ * 与移动改良版 `TRY_QUALITYS_LIST` 完全一致：
+ *   手机版 = ['master','atmos_plus','atmos','hires','flac','320k'] + '128k'
+ * 即最终展示 7 项：128k / 320k / flac / hires / atmos / atmos_plus / master
+ */
+export const PLAY_QUALITY_OPTIONS = ['128k', '320k', 'flac', 'hires', 'atmos', 'atmos_plus', 'master'] as const
 
 export const TRAY_AUTO_ID = -1

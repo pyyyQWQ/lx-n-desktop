@@ -7,6 +7,7 @@ import songList from './songList'
 import hotSearch from './hotSearch'
 import comment from './comment'
 import dailyRec from './dailyRec'
+import { getMusicQualityInfo } from './qualityDetail'
 // import tipSearch from './tipSearch'
 
 const wy = {
@@ -19,6 +20,14 @@ const wy = {
   dailyRec,
   getMusicUrl(songInfo, type) {
     return apis('wy').getMusicUrl(songInfo, type)
+  },
+  /**
+   * 获取该曲的完整音质信息（含 master / atmos / hires 与文件大小）。
+   * 复用移动改良版的音质详情接口，用于下载弹窗展示完整档位。
+   */
+  getMusicQualityInfo(songInfo) {
+    const id = songInfo?.songmid ?? songInfo?.meta?.songId ?? songInfo?.id
+    return getMusicQualityInfo(id)
   },
   getLyric(songInfo) {
     return getLyric(songInfo.songmid)

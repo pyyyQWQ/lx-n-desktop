@@ -26,12 +26,16 @@ const events = {
   request: null,
 }
 const allSources = ['kw', 'kg', 'tx', 'wy', 'mg', 'local']
+// 允许自定义音源声明的音质白名单（改版扩展）。
+// 说明：这里必须包含音源脚本 `qualitys` 里可能出现的全部标识，否则会被静默过滤掉，
+// 导致「音源声明支持但界面选不到 / 播放不走该音质」。
+// 顺序仅用于兜底回退，实际可用项由音源脚本自己声明。
 const supportQualitys = {
-  kw: ['128k', '320k', 'flac', 'flac24bit'],
-  kg: ['128k', '320k', 'flac', 'flac24bit'],
-  tx: ['128k', '320k', 'flac', 'flac24bit'],
-  wy: ['128k', '320k', 'flac', 'flac24bit'],
-  mg: ['128k', '320k', 'flac', 'flac24bit'],
+  kw: ['128k', '320k', 'flac', 'hires', 'atmos', 'master'],
+  kg: ['128k', '320k', 'flac', 'hires', 'atmos', 'master'],
+  tx: ['128k', '320k', 'flac', 'hires', 'atmos', 'atmos_plus', 'master'],
+  wy: ['128k', '320k', 'flac', 'hires', 'atmos', 'master'],
+  mg: ['128k', '320k', 'flac', 'hires'],
   local: [],
 }
 const supportActions = {
@@ -117,11 +121,11 @@ const handleRequest = (context, { requestKey, data }) => {
  *                    openDevTools: false,
  *                    message: 'xxx',
  *                    sources: {
- *                         kw: ['128k', '320k', 'flac', 'flac24bit'],
- *                         kg: ['128k', '320k', 'flac', 'flac24bit'],
- *                         tx: ['128k', '320k', 'flac', 'flac24bit'],
- *                         wy: ['128k', '320k', 'flac', 'flac24bit'],
- *                         mg: ['128k', '320k', 'flac', 'flac24bit'],
+ *                         kw: ['128k', '320k', 'flac', 'hires'],
+ *                         kg: ['128k', '320k', 'flac', 'hires'],
+ *                         tx: ['128k', '320k', 'flac', 'hires'],
+ *                         wy: ['128k', '320k', 'flac', 'hires'],
+ *                         mg: ['128k', '320k', 'flac', 'hires'],
  *                     }
  *                 }
  */

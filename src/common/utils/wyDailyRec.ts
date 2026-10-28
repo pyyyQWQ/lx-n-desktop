@@ -17,8 +17,8 @@ export const toOldSongInfo = (item: any): Record<string, any> => {
 
   if (item.hr) {
     size = getSize('hr')
-    types.push({ type: 'flac24bit', size })
-    _types.flac24bit = { size }
+    types.push({ type: 'hires', size })
+    _types.hires = { size }
   }
   if (item.sq) {
     size = getSize('sq')

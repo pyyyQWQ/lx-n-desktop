@@ -285,6 +285,16 @@
   "player__volume": "Volume: ",
   "player__volume_mute_label": "Mute",
   "player__volume_muted": "Muted",
+  "quality__128k": "128K",
+  "quality__192k": "192K",
+  "quality__320k": "320K",
+  "quality__flac": "FLAC",
+  "quality__ape": "APE",
+  "quality__wav": "WAV",
+  "quality__hires": "Hires Lossless 24-Bit",
+  "quality__atmos": "Hi-Res",
+  "quality__atmos_plus": "Hi-Res 2.0",
+  "quality__master": "Master",
   "search": "Search",
   "search__hot_search": "Top Searches",
   "search__type_music": "Song",
@@ -659,6 +669,7 @@
   "sync__overwrite_tip": "Overwrite: ",
   "sync_status_disabled": "not connected",
   "tag__high_quality": "HQ",
+  "tag__hires": "Hi-Res",
   "tag__lossless": "SQ",
   "tag__lossless_24bit": "24bit",
   "theme_add": "Add theme",
@@ -815,5 +826,6 @@
   "setting__sync_webdav_upload_failed": "Upload failed: {message}",
   "setting__sync_webdav_download_failed": "Download failed: {message}",
   "setting__sync_webdav_sync_failed": "Sync failed: {message}",
-  "setting__sync_webdav_cancelled": "Cancelled"
+  "setting__sync_webdav_cancelled": "Cancelled",
+  "download__quality_loading": "Loading quality info…"
 }
