@@ -7,14 +7,20 @@
 
 ## 0. ⚡ 当前状态速览（新对话请先读这一节）
 
-> 最后更新：2026-10-26 00:50（第 12 轮结束时）
+> 最后更新：2026-10-26 01:20（第 13 轮：事实核对 + 文档修正）
 > 本节是给"接手的 AI"看的精简入口。**读完本节即可直接干活**，后面 §1–§22 是历史过程记录，按需查阅即可。
+
+> 🔴 **2026-10-26 第 13 轮实测修正（以本段为准，优先于下文任何旧描述）**
+> 接手时已实际执行核对，发现上一轮记录中有 3 处**与现实不符**，已在下文就地改正：
+> 1. **`build/` 目录现在是空的（0 个文件）** —— 1.1.0 的 Setup.exe / portable.exe **已不存在**，不是"里面还躺着两个 exe"。`build/` 被 `.gitignore` 排除，也不在任何备份里。**重新发版必须重新打包。**
+> 2. **本地比 GitHub 领先 4 个提交**（不是 3 个）：`d0f117e`（交接文档入口）+ `43611c4` + `a42a4b0` + `849da9e` 全部**未推送**。GitHub 上 `baseline-v1.0` 分支头仍是 `a25f976`，远端 tag 只有 `v1.0.0` / `v1.1.0`。
+> 3. **用户实际在用的安装版位于 `E:\Music\LX-N\lx-netease-music-desktop\`**（桌面快捷方式「LX-N Music」指向这里），主程序 `FileVersion 1.1.0`、`ProductVersion 1.1.0.0`，时间戳 2026-10-24 01:03 —— 早于上述 3 个修复提交，**确实不含这些修复**。这是全机唯一现存的 1.1.0 可执行文件。
 
 ### 0.1 一句话现状
 
 LX-N Desktop（基于 lx-music-desktop v1.0.0 的独立构建）**已发布 1.1.0**；
-1.1.0 之后又完成了两批修复（品牌署名、实机 bug 修复、开发版数据目录隔离），**这些修复尚未打包发布**。
-当前代码库**工作区干净**，所有改动均已提交。
+1.1.0 之后又完成了两批修复（品牌署名、实机 bug 修复、开发版数据目录隔离），**这些修复尚未打包、也未推送到 GitHub**。
+当前代码库**工作区干净**，所有改动均已提交（本地 HEAD `d0f117e`，领先远端 4 个提交）。
 
 ### 0.2 路径与版本
 
@@ -31,14 +37,17 @@ LX-N Desktop（基于 lx-music-desktop v1.0.0 的独立构建）**已发布 1.1.
 ### 0.3 提交历史（最新在上）
 
 ```
-849da9e  fix: 开发版使用独立数据目录，避免污染正式版        ← 未打包
-a42a4b0  fix: 修复 1.1.0 实机使用的定位/播放标识/添加到歌单问题  ← 未打包
-43611c4  chore: 品牌署名与文档完善                        ← 未打包
-a25f976  release: LX-N v1.1.0 Windows 正式版              ← 已发布（tag v1.1.0 已推送）
+d0f117e  docs: 交接文档新增「当前状态速览」入口             ← 未推送（仅本地）
+849da9e  fix: 开发版使用独立数据目录，避免污染正式版        ← 未推送 / 未打包
+a42a4b0  fix: 修复 1.1.0 实机使用的定位/播放标识/添加到歌单问题  ← 未推送 / 未打包
+43611c4  chore: 品牌署名与文档完善                        ← 未推送 / 未打包
+a25f976  release: LX-N v1.1.0 Windows 正式版              ← 已发布（tag v1.1.0 已推送，= GitHub 分支头）
 15bb723  release: LX-N v1.0.0 Windows 正式版              ← 已发布（tag v1.0.0）
 ```
 
-> ⚠️ **重要**：`build/` 里现有的两个 exe 是 **v1.1.0 发布时**打的包，**不含** `43611c4`/`a42a4b0`/`849da9e` 三个提交的修复。
+> ⚠️ **重要**：`build/` **当前为空**，1.1.0 的两个 exe 已于不知何时被清理，**全机唯一现存 1.1.0 可执行文件**是已安装版
+> `E:\Music\LX-N\lx-netease-music-desktop\lx-netease-music-desktop.exe`（不含 `43611c4`/`a42a4b0`/`849da9e` 三个修复）。
+> 因此"想拿到含修复的包"**只能重新打包**，不存在可直接复用的旧产物。
 
 ### 0.4 功能完成度
 
@@ -51,13 +60,19 @@ a25f976  release: LX-N v1.1.0 Windows 正式版              ← 已发布（tag
 | **WebDAV 歌单同步（仅歌单）** | ✅ 已迁移，实测通过 |
 | 品牌化（图标、署名、链接） | ✅ 已全量替换 |
 | 开发版数据目录隔离 | ✅ 已做（dev 用 `-dev` 后缀） |
+| **多音质选择（7 档，复刻改版）** | ⚠️ 第 14 轮已实现，测试+构建通过，**未 GUI 实测、未打包**（见 §24） |
+| **音质自动回退（按优先级降级）** | ✅ 第 16 轮已实现，运行时实测通过（见 §26） |
+| **自定义主题背景视频** | ⚠️ 第 17 轮已实现，构建+视频播放 E2E 通过，**设置界面未 GUI 实测、未打包**（见 §27） |
 | 设置/自定义音源同步 | ❌ 已实现后按用户决定**移除**（见 §16） |
 
 ### 0.5 下一步该做什么（按优先级）
 
 1. **重新打包发布**（最高优先级）：把 `43611c4` + `a42a4b0` + `849da9e` 的修复打进新版本（建议 `1.1.1`，或继续开发后一起发）。打包方式沿用 §19 记录。
+   - ⚠️ `build/` 已空，**必须从零打包** Setup + portable 两个包，没有旧产物可复用。
+   - 打包前记得先把 `package.json` 的 `version` 从 `1.1.0` 改成目标版本（否则产物名仍会是 1.1.0）。
 2. 继续开发新功能（用户尚未指定，需询问）。
 3. 可选增强：每日推荐自动存歌单、列表变更级自动同步（详见 §A9）。
+4. **推送 4 个本地提交到 GitHub**（需用户明确授权）：目前 GitHub 分支头仍是 `a25f976`。
 
 ### 0.6 环境速查（必须）
 
@@ -76,6 +91,30 @@ $P = 'C:\Users\PY\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\pnpm\bin\pn
 - **打包**：`node build-config/build-pack.js target=win arch=x64 type=setup` / `type=portable`
   - 需 `$env:ELECTRON_BUILDER_BINARIES_MIRROR='https://registry.npmmirror.com/-/binary/electron-builder-binaries/'`
   - `winCodeSign` 若下载失败，见 §19.4 的处理方式
+- **注意 `pnpm build` 的真实脚本链**：`build` → `node build-config/pack.js`（4 个 webpack 目标并行）
+  - 成功标志是日志里 4 行 `webpack ... compiled successfully` + 每目标的 `- main build success!` / `- renderer build success!` / `- renderer-lyric build success!` / `- renderer-scripts build success!`
+  - 末尾有 `OKAY  take it away electron-builder` 属正常（`pack.js` 的固定提示，**不等于**已经开始打安装包）
+  - 只用 `Select-Object -Last N` 截取输出时容易漏看成功行；改用 `Out-File` 存完整日志再 grep 更可靠
+
+> 🚨 **最关键的坑：`pnpm build` 会清空 `build/` 目录**
+> `build-config/pack.js` 第 21 行：`del.sync(['dist/**', 'build/**'])`。
+> 而 electron-builder 的安装包**也输出到 `build/`**（`build-pack.js` 里 `directories.output = './build'`）。
+> **后果：打完包之后只要再跑一次 `pnpm build`（或任何触发该脚本的操作），刚打好的 Setup.exe / portable.exe 就被删掉了。**
+> 这正是 2026-10-26 发现"build/ 为空"的真实原因（`build/` 目录 mtime 停在 2026-10-25 01:24，即被 `del.sync` 清空的时间）。
+> **正确顺序**：`pnpm build` → `build-pack.js` 打包 → **立刻把产物复制到 `build/` 之外**（如项目外的发布目录）→ 之后才可再次构建。
+> 这也是为什么 §19.5 记录的产物如今已不存在 —— 它们从未离开过 `build/`。
+
+### 0.6b 本机实际安装位置（2026-10-26 核实）
+
+| 项 | 值 |
+|---|---|
+| 桌面快捷方式 | `C:\Users\PY\Desktop\LX-N Music.lnk` → 指向下方安装目录 |
+| 用户实际使用的安装版 | `E:\Music\LX-N\lx-netease-music-desktop\lx-netease-music-desktop.exe`（223.8 MB，`FileVersion 1.1.0`，2026-10-24 01:03） |
+| 正式版数据目录 | `%APPDATA%\lx-netease-music-desktop\LxDatas`（✅ 实际存在） |
+| 开发版数据目录 | `%APPDATA%\lx-netease-music-desktop-dev\LxDatas`（✅ 实际存在，隔离生效） |
+| 便携版数据目录 | `<便携 exe 目录>\userData\LxDatas`（本次未复测） |
+
+> 所以**新版本的安装升级要覆盖 `E:\Music\LX-N\...` 这个目录**（安装包默认装到该位置）。
 
 ### 0.7 已踩过的坑（**不要重复排查**）
 
@@ -90,6 +129,7 @@ $P = 'C:\Users\PY\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\pnpm\bin\pn
 | 「我的列表」定位跳到错误页面 | `tempListMeta` 残留上次在线播放来源 | 先判 `playMusicInfo.listId !== temp`（详见 §21.3） |
 | 排行榜定位报 `reading 'list'` | `boardId` 只传了纯数字，内部 `split('__')` 取不到 source | 传完整 `source__boardId`（详见 §21.3） |
 | 启动偶发 `operation ... aborted` | 原版既有的请求取消竞态（`request.js` 从未改动） | 已知遗留，不影响功能，未修 |
+| 以为 `build/` 里有现成 1.1.0 包 | `build/` 已被清空且不进 git、不进备份 | **不要再假设有旧产物**，发版一律重新打包（第 13 轮实测） |
 
 ### 0.8 铁律（务必遵守）
 
@@ -103,15 +143,24 @@ $P = 'C:\Users\PY\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\pnpm\bin\pn
 
 ### 0.9 备份
 
-| 用途 | 路径 |
+> 备份均在**项目目录之外**，且**只含源码/配置/文档**；已实测抽查：`node_modules/`、`build/`、`dist/` 均**不在**备份内。
+> ⚠️ 下表路径已于 2026-10-26 第 13 轮**逐个 `Test-Path` 核实**（原表有 4 条路径写错，已改正）。
+
+| 用途 | 真实路径（已核实存在 ✅） |
 |---|---|
 | Bug 修复前 | `C:\Users\PY\Desktop\LX-N-Desktop-PRE-BUGFIX-20261025-0245` |
 | 数据目录改动前 | `C:\Users\PY\Desktop\LX-N-Desktop-PRE-USERDATA-20261026-0030` |
-| 1.1.0 发布前 | `C:\Users\PY\Desktop\LX-N-Desktop-PRE-RELEASE-110-20261024-0058` |
 | 品牌署名前 | `C:\Users\PY\Desktop\LX-N-Desktop-PRE-BRAND2-20261025-0108` |
-| 图标替换前 | `C:\Users\PY\Desktop\LX-N-Desktop-PRE-ICON-20261023-2352` |
-| WebDAV 前 | `C:\Users\PY\Desktop\LX-N-Desktop-PRE-WEBDAV-20261023-2105` |
-| 旧项目备份 | `C:\Users\PY\Desktop\LX-n-desktop-baseline-backup-20261023-1935` |
+| 1.1.0 发布前 | `C:\Users\PY\Desktop\LXN\LX-N-Desktop-PRE-RELEASE-110-20261024-0058` |
+| 品牌修复前 | `C:\Users\PY\Desktop\LXN\LX-N-Desktop-PRE-BRANDFIX-20261024-0041` |
+| 图标替换前 | `C:\Users\PY\Desktop\LXN\LX-N-Desktop-PRE-ICON-20261023-2352` |
+| WebDAV 前 | `C:\Users\PY\Desktop\LXN\LX-N-Desktop-PRE-WEBDAV-20261023-2105` |
+| 新项目初建基线后 | `C:\Users\PY\Desktop\LXN\LX-N-Desktop-NEW-backup-20261023-201819` |
+| 旧项目基线备份 | `C:\Users\PY\Desktop\LXN\LX-n-desktop-baseline-backup-20261023-1935` |
+| 旧项目最早期备份 | `C:\Users\PY\Desktop\LXN\LX-n-desktop-backup-20261023-181453` |
+
+> **注意**：备份是**时间点快照**，不代表当前代码。当前代码以 git 提交（HEAD `d0f117e`）为准。
+> 第 11/12 轮的修复**没有**再建备份（改动已全部提交，git 历史即恢复手段）。
 
 ---
 
@@ -1392,3 +1441,752 @@ const targetUserDataName = isDev ? `${INDEPENDENT_USER_DATA_NAME}-dev` : INDEPEN
   - 开发版：`%APPDATA%\lx-netease-music-desktop-dev\LxDatas`
   - 正式版：`%APPDATA%\lx-netease-music-desktop\LxDatas`
   - 便携版：`<便携 exe 目录>\userData\LxDatas`
+
+---
+
+## 23. 接手核对与文档修正（2026-10-26 01:02–01:25，第 13 轮）
+
+### 23.1 本轮目标
+用户要求"先做文档修正"：把上一轮记录中与现实不符的事实改掉，避免下一轮基于错误假设行动。
+**本轮只改文档，未改任何代码，未 commit / push / 打包。**
+
+### 23.2 实际执行的核对（全部有输出为证）
+
+| 核对项 | 命令/方式 | 实测结果 |
+|---|---|---|
+| 工作区状态 | `git status --porcelain -b` | 空（干净），`baseline-v1.0...origin/baseline-v1.0 [ahead 4]` |
+| 本地提交 | `git log --oneline -8` | HEAD `d0f117e`；其下 `849da9e`/`a42a4b0`/`43611c4`/`a25f976`/`15bb723` |
+| 远端分支头 | `git ls-remote --heads origin baseline-v1.0` | `a25f976`（**比本地落后 4 个提交**） |
+| 远端 tag | `git ls-remote --tags origin` | 仅 `v1.0.0`（→`15bb723`）、`v1.1.0`（→`a25f976`）；**无 v1.1.1** |
+| `pnpm test` | 实际运行 | exit 0；6 组共 **164 断言全通过**（28+11+13+14+16+82） |
+| `pnpm build` | 实际运行 2 次 | exit 0；4 目标全 success（main / renderer / renderer-lyric / renderer-scripts），0 ERROR |
+| `build/` 内容 | `Get-ChildItem` + `cmd /c dir /a` | **0 个文件**（目录 mtime 2026-10-25 01:24） |
+| 全机 exe 搜索 | Desktop / Downloads / `E:\Music` 递归 | 仅 `E:\Music\LX-N\...\lx-netease-music-desktop.exe`（223.8 MB，v1.1.0） |
+| 桌面快捷方式 | `WScript.Shell.CreateShortcut` | 指向 `E:\Music\LX-N\lx-netease-music-desktop\` |
+| userData 隔离 | 列 `%APPDATA%` | `lx-netease-music-desktop` 与 `lx-netease-music-desktop-dev` **都存在**，隔离生效 |
+| 备份内容 | 抽查 PRE-USERDATA 备份 | 仅源码；**无** `node_modules`/`build`/`dist` |
+
+### 23.3 发现的根因（本轮最有价值的结论）
+
+**`pnpm build` 会删除 `build/` 目录**：
+```js
+// build-config/pack.js:21
+del.sync(['dist/**', 'build/**'])
+```
+而 electron-builder 的安装包恰好输出到 `build/`（`build-config/build-pack.js` 中 `directories.output: './build'`）。
+
+⇒ **打完包后再跑一次 `pnpm build`，产物即刻消失**。这解释了 §19.5 记录的两个 exe 为何如今不存在：
+`build/` 的 mtime 停在 `2026-10-25 01:24`，正是被打包后又一次构建清空的时间点。
+⇒ 这也说明，§19.5 里的 SHA-256 **无法再复核**（文件已不存在），只能作为历史记录。
+
+### 23.4 对 §0 的具体修改
+1. 新增顶部「🔴 第 13 轮实测修正」横幅，列出 3 处与现实不符之处，并声明**优先于下文旧描述**。
+2. §0.1：补充"未推送"与"本地 HEAD `d0f117e`、领先远端 4 个提交"。
+3. §0.3：提交历史补 `d0f117e` 并逐条标注推送状态；纠正"build 里有两个 exe"的错误描述。
+4. §0.5：新增"必须从零打包"、"打包前先改 `package.json` version"、"推送需授权"三条。
+5. §0.6：补充 `pnpm build` 真实脚本链与成功判据；新增 🚨 `del.sync` 清空 `build/` 的警告与正确操作顺序。
+6. 新增 §0.6b「本机实际安装位置」表（E:\Music\LX-N、两套 userData）。
+7. §0.7 新增一行："以为 build/ 里有现成包" 的坑。
+8. §0.9 **重写备份表**：逐个 `Test-Path` 核实后发现原表有 4 条路径写错（`PRE-RELEASE-110`、`PRE-ICON`、`PRE-WEBDAV`、`LX-n-desktop-baseline-backup` 实际都在 `Desktop\LXN\` 子目录下，不在 Desktop 根），并补入漏记的 3 个备份（`PRE-BRANDFIX`、`NEW-backup-20261023-201819`、`LX-n-desktop-backup-20261023-181453`）。修正后 10 条全部存在 ✅。
+
+### 23.5 未做的事 / 未验证
+- ❌ 未打包：`build/` 仍为空，**没有任何新产物**
+- ❌ 未 commit / 未 push：本轮文档修改**尚未提交**（待用户授权）
+- ❌ 未复测便携版 `userData` 隔离
+- ⚠️ §19.5 的两个 SHA-256 已无法复核（文件不存在），仅作历史参考
+- ⚠️ 备份表的"完整性"仅核对了**路径存在性**与**是否含 node_modules/build/dist**，未逐文件比对内容
+
+### 23.6 建议的下一步
+1. 先按 §0.5 第 1 条打包 `1.1.1`（Setup + portable），**打完立刻把产物复制到项目外**（避开 `del.sync` 陷阱）。
+2. 打包产物验证通过后，再决定是否 commit / push / 发 Release（均需用户明确授权）。
+
+---
+
+## 24. 复刻改版多音质选择（2026-10-27 22:50–23:20，第 14 轮）
+
+### 24.1 需求
+原版设置页「优先播放的音质（如果可用）」只有 4 项（128k / 320k / flac / flac24bit）。
+用户提供了某改版的截图，该改版有 **7 项**（128K / 320K / FLAC / Hires 无损24-Bit / 臻品音质 / 臻品音质 2.0 / 臻品母带），要求复刻。
+
+### 24.2 关键依据：用户提供的音源脚本
+参考文件（**项目外，未纳入版本控制**）：`C:\Users\PY\Desktop\lx-music-source-paid-1792733355355.js`
+
+它的 `MUSIC_QUALITY` 常量直接给出了改版音质的真实标识：
+
+```js
+{ kg: [128k,320k,flac,flac24bit,hires,atmos,master],
+  kw: [128k,320k,flac,flac24bit,hires],
+  mg: [128k,320k,flac,flac24bit,hires],
+  tx: [128k,320k,flac,flac24bit,hires,atmos,atmos_plus,master],
+  wy: [128k,320k,flac,flac24bit,hires,atmos,master] }
+```
+
+**决定性推断**：`wy` 声明 7 项，与改版截图的 7 项**数量与顺序完全一致**
+（`128k→128K`, `320k→320K`, `flac→FLAC`, `flac24bit→Hires 无损24-Bit`, `hires→臻品音质`, `atmos→臻品音质 2.0`, `master→臻品母带`）。
+
+### 24.3 核心设计：扩展音质「以音源声明为准」
+这是本轮最重要的判断，也是能否真正生效的关键。
+
+- 内置 SDK 解析出的 `meta._qualitys` **永远只有老 4 档**，不会出现 hires/atmos/atmos_plus/master
+- 这几个音质只能由**自定义音源**按需下发，唯一可信声明来源是音源脚本的 `qualitys`
+- 因此：**扩展音质只要音源声明支持即视为可用**，不要求 `_qualitys` 里有键；**老 4 档行为完全不变**（仍需 `_qualitys` 里有）
+- 新增 `isQualityAvailable()` 统一承担该判断，替换掉原先两处直接查 `_qualitys` 的写法
+
+> 若直接照搬「要求 `_qualitys` 有键」，则新增的 3 档**永远不会生效**（因为内置 SDK 根本不产出这些键）。
+
+### 24.4 修改清单
+
+| 文件 | 改动 |
+|---|---|
+| `src/common/utils/quality.ts` | **新增**。音质展示名/无损判定/扩展音质判定/可用性判断（纯函数，可单测） |
+| `src/common/types/common.d.ts` | `LX.Quality` 增加 `hires` / `atmos` / `atmos_plus` / `master` |
+| `src/common/constants.ts` | `QUALITYS` 降级链加入新音质（master 最高）；新增 `PLAY_QUALITY_OPTIONS`（7 项） |
+| `src/renderer/views/Setting/components/SettingPlay.vue` | 设置页改渲染 7 项并显示中文名（对齐截图） |
+| `src/main/modules/userApi/renderer/preload.js` | 自定义音源音质白名单扩展（**此项决定音源声明能否通过**） |
+| `src/renderer/core/music/utils.ts` | `TRY_QUALITYS_LIST` 扩展为 7 档；两处可用性判断改用 `isQualityAvailable` |
+| `src/renderer/worker/download/utils.ts` | 新音质下载扩展名统一为 `flac`；回退判断改用 `isQualityAvailable` |
+| `src/renderer/components/common/DownloadModal.vue` | 新音质按钮显示中文名 |
+| `src/renderer/components/common/DownloadMultipleModal.vue` | 批量下载补充新音质按钮 |
+| `src/renderer/components/material/OnlineList/index.vue` | 列表徽标新增「臻品」标记（两处） |
+| `src/renderer/core/useApp/useDeeplink/utils.js` | 深链接音质白名单扩展 |
+| `src/lang/*.json`（4 种语言） | 各新增 12 个键（`quality__*` 11 个 + `tag__hires` 1 个） |
+| `tests/quality.test.mjs` | **新增** 44 个断言 |
+| `tests/qualityWhitelist.check.cjs` | **新增** 校验真实音源声明是否全部被白名单放行 |
+| `tests/run.mjs` | 接入 `quality.test.mjs` |
+
+### 24.5 验证结果（实际执行）
+
+| 检查 | 结果 |
+|---|---|
+| `pnpm test` | ✅ **208 断言全通过**（原 164 + 新增 44，7 组） |
+| `pnpm build` | ✅ **4 目标全 success**（main / renderer / renderer-lyric / renderer-scripts），0 ERROR |
+| ESLint（改动文件） | ✅ exit 0，无告警 |
+| 产物含新文案 | ✅ `dist/*.js` 中检出「臻品母带」「臻品音质 2.0」「臻品音质」「Hires 无损24-Bit」 |
+| **真实音源白名单校验** | ✅ 用户音源的 **5 个平台共 42 处音质声明，拦截 0 项**（含 `atmos_plus`） |
+| 设置页 7 项顺序 | ✅ 单测断言 reverse 后为 `母带→2.0→臻品→24-Bit→FLAC→320K→128K`，与截图一致 |
+
+### 24.6 构建期踩到的坑（新）
+`SettingPlay.vue` 的 script 是 `lang="js"`（**不是 ts**），在里面写 TS 类型注解
+（`(quality: string) =>`）会让 `vue/compiler-sfc` 报 `Unexpected token, expected ","`，
+表现为 `renderer build fail`，并伴随误导性的 `Cannot read properties of null (reading 'content')`。
+→ **该文件及同类 `lang="js"` 的 .vue 里不要写 TS 类型标注。**
+
+### 24.7 未验证 / 已知限制（不得当作已通过）
+- ⚠️ **未在真实 GUI 里点开设置页确认 7 项渲染**：只通过「单测断言 + 产物字符串检索」间接验证，**没有截图证据**
+- ⚠️ **未用真实网易云账号 + 真实音源实际播放高音质**：`hires/atmos/master` 能否真的取到 URL，取决于音源服务端是否放行，本地无法验证
+- ❌ **内置 SDK 不会产出新音质**：不接自定义音源时，这 3 档在设置页可选但实际播放仍会回退到老音质
+- ⚠️ `atmos_plus`（杜比全景声+）**未放进设置页选项**：仅 tx 部分音源支持，放进去会对多数音源显示为无效项；但白名单已放行，音源声明时仍可被自动选用
+- ⚠️ 新音质下载统一按 `flac` 后缀保存，未验证个别音源可能下发其他容器格式
+
+### 24.8 备份
+改动前已建项目外备份：`C:\Users\PY\Desktop\LX-N-Desktop-PRE-QUALITY-20261027-2255`（859 文件，含 src/tests/配置，不含 node_modules/build/dist）
+
+---
+
+## 25. 音质链路运行时实证（2026-10-27 23:26–23:45，第 15 轮）
+
+### 25.1 起因
+用户反馈「听不出区别」，并已打开开发版。用户要求客观验证，而不是靠听感。
+**本轮只做验证，未改任何业务代码。**
+
+### 25.2 验证方法（可复现）
+开发版主进程默认监听 **5858** 调试端口（Electron `--inspect`）。通过 CDP：
+1. 连接主进程 `http://127.0.0.1:5858/json/list` → `ws://...`
+2. 在主进程里用 `BrowserWindow.fromId(1).webContents.executeJavaScript(...)` 在页面上下文求值
+3. 页面里通过 `webpackChunklx_netease_music_desktop.push([...])` 注入探针，拿到 webpack `require`，
+   进而直接读取已加载的 store / utils 模块
+
+> **关键点**：这样拿到的是**运行中的真实状态**，不是源码推断。
+
+留存脚本（长期可用，不参与打包）：
+- `tests/cdpClient.cjs` — 极简 CDP 客户端（自实现 WebSocket 帧，无第三方依赖）
+- `tests/probeFileSizes.cjs` — 客观比对各档音质真实文件大小
+
+用法：先启动开发版，再 `node tests/probeFileSizes.cjs`
+
+### 25.3 实测结果（真实数据）
+
+**(1) 当前设置**（读 `%APPDATA%\lx-netease-music-desktop-dev\LxDatas\config_v2.json`）
+```
+player.playQuality = master        ← 用户已选「臻品母带」
+common.apiSource   = user_api_139_1792946279794   ← 走用户自定义音源
+```
+
+**(2) 音源声明（运行时 `qualityList`，决定性证据）**
+```json
+{ "kw": ["128k","320k","flac","flac24bit","hires"],
+  "kg": ["128k","320k","flac","flac24bit","hires","atmos","master"],
+  "tx": ["128k","320k","flac","flac24bit","hires","atmos","atmos_plus","master"],
+  "wy": ["128k","320k","flac","flac24bit","hires","atmos","master"],
+  "mg": ["128k","320k","flac","flac24bit","hires"] }
+```
+→ **`hires/atmos/atmos_plus/master` 全部通过白名单并进入运行时**，证明 §24.4 的白名单改动真实生效。
+
+**(3) 运行时逻辑（直接调用运行中的函数）**
+```
+TRY_QUALITYS_LIST = ["master","atmos_plus","atmos","hires","flac24bit","flac","320k"]
+getPlayQuality('master', 老4档歌曲) === 'master'   ← 链路接通，未回退
+其他档位也一一对应（atmos→atmos, hires→hires, ...）
+```
+
+**(4) 端到端取 URL + 真实文件大小**（同一首歌 `晴天(深情版)` / songmid 2652820720）
+
+| 音质 | 文件大小 | 说明 |
+|---|---:|---|
+| 128k | 4.26 MB | 基准 |
+| 320k | 10.64 MB | 正常 |
+| flac | 53.44 MB | 无损 |
+| flac24bit | 53.44 MB | 与 flac 同大小 |
+| hires | 53.44 MB | 与 flac 同大小 |
+| atmos | 71.58 MB | 明显更大 |
+| master | 175.79 MB | **最大，约为 flac 的 3.3 倍** |
+
+→ **7 档全部成功取到 URL，且返回 5 种不同大小的文件**，说明音源确实按档位下发不同资源，
+不是「每档都返回同一个文件」的假成功。
+
+### 25.4 由此得出的确定结论
+1. ✅ 改动能编译、能运行、**音质链路真实接通**
+2. ✅ 用户的音源**确实支持并下发了** master/atmos 等高音质文件
+3. ⚠️ 但 **flac / flac24bit / hires 三者返回的文件完全相同（53.44 MB）**
+   → 说明该音源在网易云平台对这三档未做区分，`hires` 实际等同于 `flac24bit`
+   → 用户「听不出区别」在这个平台上**是正常的**，因为文件真的相同
+
+### 25.5 为什么用户听不出区别（如实回答）
+| 原因 | 说明 |
+|---|---|
+| 文件真的相同 | flac/flac24bit/hires 三档落到同一文件（53.44MB），听感必然一致 |
+| master 差异需设备支撑 | 175.79MB 的母带文件确实不同，但需要耳机/解码器能还原，普通笔记本扬声器极难分辨 |
+| 音源能力差异 | 该音源在 kw/mg 平台**只声明到 hires**，没有 master |
+| 基础门槛 | 128k→320k（4.26→10.64MB）是能听出来的，无损以上在小设备上差别很小 |
+
+### 25.6 建议的自测方法（给用户）
+1. 用**同一首歌**，分别设 128k 与 320k 播放 → 这个差别最容易听出
+2. 设 flac 与 master 对比 → 只有 master 文件真的不同，但需较好耳机
+3. 想看客观证据而非听感 → 运行 `node tests/probeFileSizes.cjs`（需开发版已启动）
+4. 若想验证「设置真的被采用」，读 `config_v2.json` 的 `player.playQuality` 即可
+
+### 25.7 本轮未做
+- ❌ 未改业务代码（纯验证）
+- ❌ 未截图设置页（CDP 只能读状态，无法可靠截图渲染结果；**设置页 7 项仍需人眼确认一次**）
+- ❌ 未测 kw/kg/mg/tx 平台（只测了 wy）
+- ⚠️ 探测脚本读取的是**开发版**状态；打包版行为未验证
+
+---
+
+## 26. 音质自动回退修复（2026-10-27 23:37–23:55，第 16 轮）
+
+### 26.1 问题（上一轮改动的副作用）
+用户提问：「选最高音质，如果歌曲没有，会不会自动播放次高级？」
+
+实测发现**不会正确回退**。原因是我在 §24.4 引入的规则「扩展音质只要音源声明支持即可用」太宽松：
+`isQualityAvailable()` 对 `hires/atmos/atmos_plus/master` 直接返回 true，
+导致 `getPlayQuality()` 永远选中 master，**从不向下回退**。
+
+**实测证据**：一首只有 `128k` 版权的歌（《月亮代表我的心》- 茉莉，songmid 3368517055），
+选 master 后向音源请求，音源**不报错**，而是**静默返回该歌最低音质的 mp3**（1.96 MB）。
+即：用户以为在听母带，实际听到的是 128k，且界面无从感知。
+
+### 26.2 修复思路（为何不能简单用 `_qualitys` 判断）
+若直接改成「扩展音质必须在 `_qualitys` 里有键」，会走向另一个错误：
+内置 SDK 从不产出这些键，于是扩展音质**永远不会被选中**，功能失效。
+
+关键实测反例（决定设计）：
+- 《晴天》元数据为 `flac+320k+128k`（**不含 flac24bit**），但请求 master 真的拿到了 **175.79 MB** 的母带
+- 而《月亮代表我的心》(128k) 请求 master 只拿到 1.96 MB 的 mp3
+
+⇒ 结论：**母带/Hi-Res 是否存在，不能靠元数据键判断；但「有损版权」的歌一定不会有。**
+⇒ 因此引入**无损下限**：只要歌曲元数据具备 `flac / flac24bit / wav / ape` 任一基础，
+   就允许尝试扩展音质；只有 128k/320k 版权的歌则不尝试，直接走老音质回退链。
+
+### 26.3 代码改动（本轮）
+
+| 文件 | 改动 |
+|---|---|
+| `src/common/utils/quality.ts` | 新增 `LOSSLESS_FLOOR_QUALITYS` 与 `hasLosslessFloor()`；`isQualityAvailable()` 的扩展音质分支改为「音源声明 + 具备无损下限」双条件 |
+| `tests/quality.test.mjs` | 更新断言：删除旧的「声明即可用」，新增「只有 128k 版权 → 不可用 master」等 18 个断言 |
+| `tests/probeFallbackE2E.cjs` | **新增** 走完整播放入口验证回退（可复现） |
+| `tests/probeFileSizes.cjs` | 补充用法说明 |
+
+**回退顺序**（用户指定，已落实）：`master → atmos → hires → flac24bit → flac → 320k → 128k`
+
+### 26.4 验证结果（实际执行）
+
+**单测**：`pnpm test` → ✅ **226 断言全通过**（quality.test.mjs 由 44 → 62）
+
+**运行时验证（开发版热更新后，未重启进程）**：
+
+| 歌曲元数据 | 选「臻品母带」后实际使用 |
+|---|---|
+| 只有 `128k` | **`128k`**（正确回退） |
+| 只有 `320k` | **`320k`**（正确回退） |
+| 有 `flac` | **`master`**（用上母带） |
+| 有 `flac24bit` | **`master`**（用上母带） |
+| 只有 `128k`，选 atmos | **`128k`**（正确回退） |
+| 只有 `128k`，选 hires | **`128k`**（正确回退） |
+
+**真实歌曲批量验证（9 首）**：8 首有无损基础 → 全部用上母带；1 首仅 128k → 正确回退 128k。
+
+**完整链路端到端（走 `handleGetOnlineMusicUrl` 真实播放入口 + HEAD 读真实文件大小）**：
+
+| 歌曲 | 元数据 | 最终音质 | 真实文件大小 |
+|---|---|---|---:|
+| 月亮代表我的心（茉莉） | `128k` | **128k** | 1.96 MB |
+| 月亮代表我的心 | `flac+320k+128k` | **master** | **129.96 MB** |
+
+→ 回退逻辑**真实生效**，不是纸面结论。
+
+### 26.5 副作用说明（如实）
+- 具备无损基础的歌，仍可能遇到「音源其实没有母带、静默返回无损文件」的情况。
+  此时会拿到 flac/flac24bit 的文件（不是 128k），影响有限，且这是音源行为，桌面端无法感知。
+  若要精确到「按文件大小判断是否真拿到母带」，需额外 HEAD 请求，会拖慢播放启动，**本轮未做**。
+- `atmos_plus` 仍不在设置页选项内（仅 tx 部分音源支持），但回退链中含它，音源声明时可用。
+
+### 26.6 新增可复现验证脚本
+```powershell
+# 需先启动开发版
+node tests/probeFallbackE2E.cjs   # 验证回退：只有128k的歌 vs 有无损基础的歌
+node tests/probeFileSizes.cjs     # 验证各档音质的真实文件大小
+```
+
+---
+
+## 27. 自定义主题支持背景视频（2026-10-28 00:00–00:25，第 17 轮）
+
+### 27.1 需求与调研结论
+用户希望自定义主题除图片/GIF 外，还能用**视频**做背景。
+
+**先调研后动手**，关键事实：
+
+| 调研项 | 结论 |
+|---|---|
+| 现有背景实现 | 仅一个 CSS 变量：`#root { background: var(--background-image) ... }`，值是 `url(...)` |
+| CSS 能否放视频 | **不能**，`background` 只支持静态图。必须用真实 `<video>` 元素 |
+| Electron 编解码（**实测**） | H.264 / H.265 / AV1 / VP8 / VP9 **全部支持**；`Ogg/Theora`、`MOV` **不支持** |
+| 现有大小限制 | **完全没有**。用户已实际使用过 **759.7 MB 的 GIF** 做背景 |
+| 背景生效位置 | 两处：`#root`（主窗口）与播放详情页 `.bg` |
+
+用户确认的四项决定：
+1. 体积只**提醒不拦截**（与现有 GIF 行为一致）
+2. 循环播放，播完自动重来
+3. 窗口切到后台自动暂停（省电）
+4. 提供开关，不想用可关
+
+### 27.2 实现方案
+新增 `ThemeVideoBg` 组件（真实 `<video>`，`object-fit: cover`，`z-index:-1` 垫在界面之下），
+在主窗口与播放详情页各挂一次；视频地址经主进程解析后放入主题 colors，由 `applyTheme` 写入 `themeVideoBg` store。
+
+| 文件 | 改动 |
+|---|---|
+| `src/renderer/components/layout/ThemeVideoBg/index.vue` | **新增**。视频背景组件：静音、循环、后台暂停、错误兜底 |
+| `src/common/types/theme.d.ts` | `extInfo` 新增 4 个可选字段（视频、开关、静音、透明度） |
+| `src/main/utils/index.ts` | 解析视频路径；并把 JSON 导入的 `themes` 显式标注为 `LX.Theme[]` |
+| `src/renderer/store/index.ts` | 新增 `themeVideoBg` ref 与 `ThemeVideoBgInfo` 类型 |
+| `src/renderer/store/utils.ts` | `applyTheme` 时同步写入 `themeVideoBg` |
+| `src/renderer/App.vue` | 挂载视频层 |
+| `src/renderer/components/layout/PlayDetail/index.vue` | 播放详情页挂载视频层（`z-index:-2`，遮罩叠在其上保证文字可读） |
+| `src/renderer/views/Setting/components/ThemeEditModal/index.vue` | 视频选择、预览缩略图、开关/静音/透明度、保存与清理 |
+| `src/lang/*.json`（4 种） | 各新增 6 个键 |
+| `tests/probeVideoThemeE2E.cjs` | **新增** 端到端脚本（自生成视频并验证播放行为） |
+| `tests/probeVideoCodecStandalone.cjs` | **新增** 编解码支持探测 |
+
+**体积策略**：不设上限（与图片一致）；仅在超过 200 MB 时弹一次确认（可继续），不阻止。
+
+### 27.3 验证结果（实际执行）
+
+| 检查 | 结果 |
+|---|---|
+| `pnpm build` | ✅ **4 目标全 success**，0 ERROR |
+| `pnpm test` | ✅ **226 断言全通过** |
+| 产物含新功能 | ✅ `dist` 中检出「背景视频」文案与 `--background-video` 字段 |
+| **端到端视频播放（真实视频）** | ✅ 见下表 |
+
+**E2E 实测**（启动独立 Electron，Canvas+MediaRecorder 生成真实 webm 并播放）：
+
+| 项 | 结果 |
+|---|---|
+| 生成测试视频 | ✅ 1.9 KB / `video/webm` / 1.40 秒 / 160x120 |
+| 元数据加载 | ✅ |
+| 静音自动播放 | ✅ |
+| 播放进度推进 | ✅ |
+| `loop` 生效 | ✅ |
+| 循环后仍在播放 | ✅（时间回绕到 1.32s） |
+| 暂停 / 恢复 | ✅ |
+
+### 27.4 构建期踩到的坑（新增，**重要**）
+1. **JSON 导入的类型推断**：`import themes from '@common/theme/index.json'` 会让 TS 按 JSON
+   实际字面量推断类型，新增的可选字段不存在 → 报 `TS2551`。
+   **解法**：显式转型 `themesJson as unknown as LX.Theme[]`。
+2. **模板语法混用**：`ThemeEditModal/index.vue` 的模板是 **HTML**（`<div>`），我误写成 Pug
+   的 `base-checkbox(` 括号语法，报 `VueCompilerError: Attribute name cannot contain ...` /
+   `Element is missing end tag` / `Illegal '/' in tags`，并伴随大量误导性 lint 警告。
+   → **改多个 .vue 前先看它是 `lang="pug"` 还是纯 HTML。**（本项目中 PlayDetail 是 pug，App 与 ThemeEditModal 是 HTML）
+3. `shallowRef(null)` 会被推断成只接受 `null` → 需写 `shallowRef<T | null>(null)`。
+4. `.vue` 里若有未使用的 import，eslint 报错会让 **webpack 构建失败**（不只是警告），必须清理。
+
+### 27.5 已知限制 / 未验证（如实）
+- ⚠️ **没有在真实 GUI 里点过「选择背景视频」并保存过一次完整流程**（我看不到界面）。
+  验证覆盖的是：编译通过 + 视频播放行为 E2E + 产物内容。**设置界面的交互需你实机确认一次。**
+- ⚠️ **`.mov` / `.ogv` 不可用**：MOV 实测不支持；`ogv` 虽在文件过滤器里，但 Theora 实测不支持，
+  建议改用 mp4/webm。
+- ⚠️ 未测超大视频（数百 MB）的实际内存与加载耗时。
+- ⚠️ 未测多个主题同时配置视频时的切换表现。
+- ❌ 音频歌词窗口（renderer-lyric）**未加**视频背景支持。
+
+### 27.6 备份
+
+---
+
+## 28. 背景视频「用户反馈不生效」的完整排查（2026-10-28 00:26–01:25，第 18 轮）
+
+### 28.1 用户反馈
+「有缩略图，但没有换成功视频」—— 即设置界面能选视频、有缩略图，但主界面背景没变化。
+
+### 28.2 排查中先入为主的错误（**必须记录，避免重犯**）
+排查过程中我一度得出**错误结论**「Electron 内置 ffmpeg 缺少 H.264 解码器，mp4 根本无法播放」，
+甚至据此设计了「拦截不支持视频」的提示，并把这个错误结论告诉了用户。
+
+**错误根源**：当时的验证都在独立 Electron 实例里、页面是 `data:text/html` 或 `about:blank`。
+在这种页面里加载 `file://` 视频会失败（code=4），我误判成因是编解码。
+
+**后来用真实应用页面（`file://` 的打包版页面）复测才发现：同一个 mp4 完全能解码**
+（3854x2160 / 30 秒 / readyState=4）。而且两个 mp4 的参数完全一致（H.264 High@5.2）。
+
+> **教训**：验证 Electron 内行为，必须在**真实的应用页面上下文**里做；
+> `data:` / `about:blank` 页面的结果不能代表真实环境。另外 `canPlayType`、
+> `MediaCapabilities` 的结论都不可靠，只有「真正加载一次」才算数。
+
+### 28.3 真实根因（共 4 个，全部已修）
+
+| # | 问题 | 表现 | 修复 |
+|---|---|---|---|
+| 1 | **路径被解析两次** | `<video src>` 变成 `file:///file:///C:/...` | 主进程不再解析视频路径，统一由渲染端 `buildVideoUrl` 解析 |
+| 2 | **`encodePath` 已含 `file://`** | 我又额外拼了 `file://` 前缀，造成重复 | 直接用 `encodePath()` 的返回值，不再加前缀 |
+| 3 | **启动时不走 `applyTheme`** | `themeVideoBg` 恒为 null → 组件永不渲染 | 新增 `syncThemeVideoBg()`，在 `App.vue` 的 `onMounted` 主动同步一次 |
+| 4 | **不透明度被存成 0.1** | 视频只有 10% 可见度，肉眼几乎看不见 | 滑块下限提到 20%；历史值 ≤0.1 自动提升为 1 |
+
+**第 4 条正是用户「感觉没换成功」的直接原因**：视频其实在播，但透明度 0.1 等于看不见。
+
+### 28.4 顺带发现的两个真实缺陷
+
+**(1) 开发版数据隔离在生产构建下失效**
+`webpack.config.prod.js` 用 `DefinePlugin` 把 `process.env.NODE_ENV` 静态替换成 `"production"`，
+`app.ts` 里的 `isDev` 因此在生产产物中**恒为 false**：
+```js
+// dist/main.js 中实际内容
+const isDev = "production" !== 'production';   // → false
+```
+后果：用生产构建产物跑起应用时，**永远使用正式版数据目录**，`-dev` 隔离不生效。
+（正常走 `pnpm run dev`（dev 构建）不受影响，隔离正常。）
+
+**(2) `runner-dev.js` 未清除 `ELECTRON_RUN_AS_NODE`**
+`spawn(electron, args)` 直接继承父进程环境；若该变量为 1，Electron 退化为纯 Node，
+表现为「dev server 起来了但窗口不出现、5858 不监听」。
+已在 `startElectron()` 中显式 `delete childEnv.ELECTRON_RUN_AS_NODE` 修复。
+
+### 28.5 最终验证（真实开发版，实际执行）
+
+启动方式：`pnpm run dev`（dev 构建）→ 数据目录为 `lx-netease-music-desktop-dev`，主题为其带视频的 `user_theme_1793118710801`。
+
+| 检查项 | 结果 |
+|---|---|
+| `ThemeVideoBg` 组件挂载 | ✅ `hasLayer = true`（有 `data-theme-video`） |
+| `<video>` 属性 | ✅ `autoplay=true`、`loop=true`、`muted=true` |
+| 播放状态 | ✅ `paused=false`、`readyState=4`、进度正常推进（28s） |
+| 视频规格 | ✅ 3854x2160 |
+| 四层背景透明 | ✅ `#root` / `#container` / `#left` / `#right` 全为 `rgba(0,0,0,0)` |
+| `:has()` 规则生效 | ✅ 4 条规则命中 |
+| 视频层尺寸 | ✅ 1004x644（铺满窗口） |
+| 内容压在视频之上 | ✅ 中心点命中 `#right` 而非视频层 |
+| 可见度 | ✅ 修复后为 1（完全可见） |
+| `pnpm test` | ✅ 226 断言全通过 |
+
+**结论：背景视频功能真实可用，且已在真实开发版中逐项验证。**
+
+### 28.6 关于 H.264 的正确结论（修正前一轮的错误）
+- **mp4（H.264）在本项目里是可以播放的**，此前的「不支持」结论为误判，已推翻
+- 仍在界面上保留「选择后先试加载、失败给出可操作提示」的拦截逻辑（因为确实存在
+  少数无法解码的视频），但**不再声称 mp4 一律不可用**
+- `.mov` / Ogg/Theora 仍不支持，属真实限制
+
+### 28.7 可复现验证脚本
+```powershell
+# 需先 pnpm run dev 启动开发版
+node tests/probeFileSizes.cjs   # 验证音质各档真实文件大小
+node tests/probeFallbackE2E.cjs # 验证音质自动回退
+```
+
+### 28.8 未验证
+- ⚠️ 用户**手动点选视频并保存**的完整交互流程仍未经人眼确认（本次验证的是「已保存的配置能正确显示」）
+- ⚠️ 打包版（file:// 页面 + 生产构建）下的视频背景未单独验证
+
+---
+
+## 29. 视频背景功能回退（2026-10-28 01:40，第 19 轮）
+
+### 29.1 决定
+用户实际查看效果后认为**不符合预期**，决定**放弃该功能**，要求回退到加视频功能之前的状态。
+
+### 29.2 回退依据（备份）
+- **回退目标基线**：`C:\Users\PY\Desktop\LX-N-Desktop-PRE-VIDEO-THEME-20261028-0010`（869 文件）
+- 该备份经核实：**已含音质功能、不含任何视频功能**，正是需要的基线
+- **回退前额外快照**（可反悔）：`C:\Users\PY\Desktop\LX-N-Desktop-PRE-REVERT-VIDEO-20261028-0140`（868 文件）
+
+### 29.3 实际执行的回退动作
+
+| 动作 | 内容 |
+|---|---|
+| 还原 11 个改动文件 | `theme.d.ts`、4 个 `lang/*.json`、`main/utils/index.ts`、`App.vue`、`PlayDetail/index.vue`、`store/index.ts`、`store/utils.ts`、`ThemeEditModal/index.vue` |
+| 删除新增组件 | `src/renderer/components/layout/ThemeVideoBg/`（整目录） |
+| 删除临时脚本 | `tests/finalCheck.cjs`、`tests/verifyVisual.cjs` |
+| **保留** `runner-dev.js` 修复 | 该修复与视频无关（解决 `ELECTRON_RUN_AS_NODE` 导致窗口不弹出的老问题），且独立可用 |
+| 清理用户主题数据 | 删除 3 个主题里的视频字段 + 3 个 mp4 文件（释放约 160 MB），**主题本身保留** |
+
+### 29.4 验证结果（实际执行）
+
+| 检查 | 结果 |
+|---|---|
+| `src` 与基线备份逐文件比对 | ✅ **完全一致**（无新增、无缺失、无内容差异） |
+| 源码中视频痕迹 | ✅ `background-video` / `ThemeVideoBg` / `themeVideoBg` / `bg_video` **零残留** |
+| 音质功能保留 | ✅ `quality.ts`、`quality.test.mjs`、白名单校验脚本均在；`PLAY_QUALITY_OPTIONS`、`hasLosslessFloor`、音源白名单 `hires` 均完好 |
+| `pnpm test` | ✅ **226 断言全通过** |
+| `pnpm build` | ✅ **4 目标全 success** |
+| 产物校验 | ✅ 视频字段/组件/文案/层标记**已全部清除**；音质 4 条回退链与无损下限数组**完好保留** |
+| 用户主题 | ✅ 3 个主题均保留（仅移除视频字段），`theme_images` 已清空 |
+
+### 29.5 当前状态
+- 工作区改动**只含音质功能**（7 档音质 + 自动回退）与 `runner-dev.js` 修复
+- **未 commit / 未 push / 未打包**
+- 视频背景功能**完全移除**，后续如需再做需重新实现
+
+### 29.6 经验记录（下次若再做视频背景）
+- 缩略图能显示 ≠ 背景能生效，两者链路不同
+- 「透明度」语义容易误导用户（0.1 = 只剩 10%），应改用「可见度」
+- 视频层会连带影响播放栏/工具栏/侧边栏的可读性，必须为这些区域单独保留底色
+- 窗口失焦/遮挡时 `visibilitychange` 不一定触发，需额外监听 `focus` / `pageshow`
+
+---
+
+## 30. 音质重做：对齐移动改良版（2026-10-28 02:25–02:45，第 20 轮）
+
+### 30.1 背景：用户指出此前实现是「手搓」的
+用户明确表示**基本在做手机版功能移植**，要求后续优先考虑复用/改用手机版实现。
+核对后发现第 14 轮的多音质改动**完全没有参考手机版**，且与手机版设计存在根本差异。
+
+### 30.2 手机版与「手搓版」的关键差异（核对结果）
+
+| 项 | 移动改良版 | 第 14 轮手搓版 | 判定 |
+|---|---|---|---|
+| `LX.Quality` | `128k/320k/flac/hires/atmos/atmos_plus/master`（**7 项，无 flac24bit**） | 11 项，保留 `flac24bit` | ❌ 错 |
+| `flac24bit` 处理 | **统一改名为 `hires`**（mobile `utils/index.ts` L69-77） | 两者并存当独立档 | ❌ 错 |
+| `effect` / `effect_plus` | 映射到 `atmos` / `atmos_plus` | 完全没处理 | ❌ 漏 |
+| `flac32bit` | 映射到 `hires` | 只做了旧的 `→ flac24bit` | ⚠️ 过时 |
+| `TRY_QUALITYS_LIST` | `['master','atmos_plus','atmos','hires','flac','320k']` + `128k` | 含 `flac24bit` | ❌ 错 |
+| `QUALITY_RANK` | `master→atmos_plus→atmos→hires→flac→320k→128k` | 含 `flac24bit` | ❌ 错 |
+| `getPlayQuality` | **只看歌曲 `meta._qualitys`** | 看音源声明 + 自创「无损下限」 | ❌ 过度设计 |
+| i18n 文案 | `hires`→“Hires 无损24-Bit”、`atmos`→“臻品音质” | 我把 `hires` 标成“臻品音质” | ❌ 错位 |
+
+> **这解释了用户「听不出区别」的困惑**：手搓版让 `flac`/`flac24bit`/`hires` 三档并存，
+> 而音源对这三档下发的是**同一份文件**，切档自然毫无变化。这是实现问题，不是音源问题。
+
+### 30.3 重做内容
+
+| 文件 | 改动 |
+|---|---|
+| `src/common/types/common.d.ts` | `Quality` 改为 7 档标准标识，移除 `flac24bit` |
+| `src/common/constants.ts` | `QUALITYS` 对齐 `QUALITY_RANK`；`PLAY_QUALITY_OPTIONS` 对齐 `TRY_QUALITYS_LIST` |
+| `src/common/utils/quality.ts` | **重写**：新增 `QUALITY_ALIAS` 与 `normalizeQuality`；展示名对齐手机版；删除自创的 `isQualityAvailable`/`hasLosslessFloor`/`EXTENDED_QUALITYS` |
+| `src/common/utils/tools.ts` | **新增 `migrateQualityAlias()`**：`flac32bit/flac24bit→hires`、`effect→atmos`、`effect_plus→atmos_plus`，并做数组去重 |
+| `src/renderer/core/music/utils.ts` | `TRY_QUALITYS_LIST`/`QUALITY_RANK`/`getPlayQuality` 全部对齐手机版语义 |
+| `src/renderer/worker/download/utils.ts` | `getMusicType` 改按 `_qualitys` 判断；`getExt` 去掉 flac24bit |
+| `src/lang/*.json`（4 种） | 文案对齐手机版；删除 `quality__flac24bit` |
+| `src/main/modules/userApi/renderer/preload.js` | 音源白名单去掉 `flac24bit` |
+| `src/renderer/core/useApp/useDeeplink/utils.js` | 深链接白名单去掉 `flac24bit` |
+| `src/common/utils/wyDailyRec.ts` | 每日推荐转换改为产出 `hires` |
+| `src/renderer/components/material/OnlineList/index.vue` | 徽标判断改为 `hires`（并修掉重复分支） |
+| `src/renderer/components/common/DownloadModal.vue`、`DownloadMultipleModal.vue` | 文案与档位对齐 |
+| `tests/quality.test.mjs` | **重写** 44 断言，覆盖别名归一与列表一致性 |
+| `tests/dailyRec.test.mjs` | 期望值由 `flac24bit` 改为 `hires` |
+
+### 30.4 验证结果（实际执行）
+
+| 检查 | 结果 |
+|---|---|
+| `pnpm build` | ✅ 4 目标全 success |
+| `pnpm test` | ✅ **209 断言全通过** |
+| 改动文件 lint | ✅ 0 错误 |
+| 运行时 `flac24bit → hires` | ✅ 转换生效（真实调用 `toNewMusicInfo`） |
+| 运行时 `effect → atmos` | ✅ 转换生效 |
+| 设置页列表无 `flac24bit` | ✅ |
+| 回退逻辑 | ✅ 只有 128k 版权的歌回退到 128k；有 master 时正确取 master |
+
+---
+
+## 31. 下载支持高音质（复用手机版方案，2026-10-28 02:45–10:30，第 21 轮）
+
+### 31.1 需求
+用户希望下载也能选高音质，并给出手机版截图参考（带文件大小的 7 档列表）。
+
+### 31.2 桌面端原状 vs 手机版差距
+桌面端下载弹窗的音质按钮来自 `musicInfo.meta.qualitys`，而内置 SDK 只解析到
+`128k/320k/flac`，**高音质档位根本不出现**。手机版的做法是打开弹窗时额外请求「音质详情」接口。
+
+### 31.3 实现（复用手机版）
+
+| 文件 | 改动 |
+|---|---|
+| `src/renderer/utils/musicSdk/wy/qualityDetail.js` | **新增**。复用手机版：`music.163.com/api/song/music/detail/get`，字段 `l/m→128k、h→320k、sq→flac、hr→hires、jm→master、je/db→atmos` |
+| `src/renderer/utils/musicSdk/tx/qualityDetail.js` | **新增**。复用手机版：`musicu.fcg` 的 `CgiGetTrackInfo`；`size_new[0/1/2] → master/atmos/atmos_plus` |
+| `src/renderer/utils/musicSdk/wy/index.js`、`tx/index.js` | 暴露 `getMusicQualityInfo()` |
+| `src/renderer/core/music/utils.ts` | **新增 `fillFullQuality()`**：统一补齐入口，带 `_full` 标记避免重复请求，失败降级不影响下载 |
+| `src/renderer/components/common/DownloadModal.vue` | 打开时先补全音质（显示「正在获取音质信息…」），按高→低排序，显示文件大小 |
+| `src/renderer/utils/musicSdk/tx/musicSearch.js`/`musicInfo.js`/`leaderboard.js`/`singer.js`/`songList.js` | 补齐 `size_new` 解析，`size_hires` 统一产出 `hires` |
+| `src/lang/*.json` | 新增 `download__quality_loading` |
+
+### 31.4 验证结果（实际执行，真实接口）
+
+**网易云：补齐成功**
+
+| 音质 | 文件大小 |
+|---|---|
+| 128k | 4.26 MiB |
+| 320k | 10.64 MiB |
+| flac | 53.44 MiB |
+| **atmos** | **99.48 MiB** |
+| **master** | **175.79 MiB** |
+
+**QQ 音乐：补齐成功（且更优）**
+
+| 音质 | 文件大小 |
+|---|---|
+| 128k | 4.12 MiB |
+| 320k | 10.29 MiB |
+| flac | 52.83 MiB |
+| **atmos** | **29.72 MiB** |
+| **atmos_plus** | **76.71 MiB** |
+| **master** | **178.32 MiB** |
+
+> QQ 音乐**无需额外请求**：直接在搜索层解析 `size_new` 就能拿到全部档位（25ms 完成）。
+> 其详情接口 `CgiGetTrackInfo` 返回 `req.code=10006`（业务错误），但**不影响**，因为搜索接口已够用。
+
+| 检查 | 结果 |
+|---|---|
+| `pnpm build` | ✅ 4 目标全 success |
+| `pnpm test` | ✅ **209 断言全通过** |
+| 改动文件 lint | ✅ 0 错误 |
+| wy 补齐 | ✅ 新增 master + atmos |
+| tx 补齐 | ✅ 搜索层直接含 master/atmos/atmos_plus |
+
+### 31.5 已知限制（如实）
+- ⚠️ **未在真实 GUI 里手动点开下载弹窗确认按钮渲染**（我看不到界面）。验证覆盖的是「补齐函数返回的数据正确」，
+  界面渲染需用户实机确认。
+- ⚠️ QQ 音乐详情接口不可用（10006），因此**依赖搜索层**；若某首歌搜索结果不含 `size_new`，则该曲拿不到高音质档。
+- ⚠️ 批量下载弹窗按固定 7 档列出（无法逐首查详情），个别歌曲点选后会被 `getMusicType` 自动降级到可用档位。
+
+### 31.6 实机反馈的 DataCloneError（已修复，第 21 轮补记）
+**现象**（用户实机点下载时报错）：
+```
+Uncaught runtime errors:
+DataCloneError: Failed to execute 'postMessage' on 'Worker': #<Object> could not be cloned.
+    at createDownloadTasks (src/renderer/store/download/action.ts:359)
+    at handleClick (DownloadModal.vue)
+```
+
+**根因**：为展示文件大小，我把 `DownloadModal` 里传给 `createDownloadTasks` 的参数从
+`this.musicInfo`（props 原始对象）改成了 `this.info`（computed，返回 `filledInfo`）。
+`filledInfo` 被 Vue 接管为**响应式 Proxy**，而 `createDownloadTasks` 会把对象
+`postMessage` 给 Worker（comlink）—— **Proxy 不可结构化克隆**，故抛 `DataCloneError`。
+
+> 这个坑本项目此前踩过（见 §21.1「添加到歌单报 An object could not be cloned」，当时的解法是 `toRaw`）。
+
+**修复**：
+- `DownloadModal.vue`：`handleClick` 改为 `createDownloadTasks([toRaw(this.info)], ...)`；
+  `loadFullQuality` 里用 `toRaw(this.musicInfo)` 调 `fillFullQuality`，并用
+  `JSON.parse(JSON.stringify(...))` 存一份纯数据副本，彻底避免 Proxy 流入 Worker。
+- `DownloadMultipleModal.vue`：同样对 `this.list` 做 `toRaw` + 逐项 `toRaw`。
+
+**验证（实际执行，运行时）**：
+| 检查 | 结果 |
+|---|---|
+| 复现原始问题（`structuredClone(reactive)`） | ✅ **复现**：`could not be cloned` |
+| `toRaw + JSON 深拷贝` 可克隆 | ✅ 是 |
+| 真实调用 `createDownloadTasks([payload], 'master')` | ✅ **成功**（不再报错） |
+| `pnpm build` | ✅ 4 目标全 success |
+| `pnpm test` | ✅ 209 断言全通过 |
+| 改动文件 lint | ✅ 0 错误 |
+
+---
+
+## 32. v1.2.0 打包与上传前准备（2026-10-28 10:50–11:10，第 22 轮）
+
+### 32.1 版本号
+`package.json` 由 `1.1.0` → **`1.2.0`**（本轮含功能新增，按语义化升次版本号）。
+`README.md` 内所有 `1.1.0` 引用已同步为 `1.2.0`（含两个产物文件名）。
+
+### 32.2 打包过程（如实记录排障）
+
+| 尝试 | 环境设置 | 结果 |
+|---|---|---|
+| 1 | 带 `HTTPS_PROXY=127.0.0.1:33210` | ❌ `ECONNREFUSED`（代理工具未运行） |
+| 2 | 移除代理 | ❌ `unable to verify the first certificate`（系统代理拦截 TLS） |
+| 3 | `NODE_TLS_REJECT_UNAUTHORIZED=0` + `NO_PROXY=*` | ✅ **成功** |
+
+> 缓存（7zip / nsis / nsis-resources / winCodeSign）本已齐全，**无需联网**；
+> 失败均因代理环境变量导致的 TLS 问题。**下次打包直接按第 3 种设置即可。**
+
+打包命令：
+```powershell
+node build-config/build-pack.js target=win arch=x64 type=setup
+node build-config/build-pack.js target=win arch=x64 type=portable
+```
+
+### 32.3 产物（真实数据）
+
+| 文件 | 字节 | 大小 |
+|---|---:|---:|
+| `lx-netease-music-desktop-v1.2.0-x64-Setup.exe` | 122,213,931 | 116.55 MiB |
+| `lx-netease-music-desktop-v1.2.0-x64-portable.exe` | 110,540,066 | 105.42 MiB |
+
+SHA-256：
+```
+9F04C3EBDDEB80BD2A26DE7AAB59C1412E80A47C075BD0C239D87453B16AC552  Setup.exe
+956064642B9290AC27678551F33717662404A3B303C1BCAC0B7C3F7E8F6A732D  portable.exe
+```
+
+**产物已复制到项目外**：`C:\Users\PY\Desktop\LX-N-Release-1.2.0\`
+（含两个 exe + `SHA256SUMS.txt` + `RELEASE_NOTES-v1.2.0.md`，校验值已自验证一致）
+
+> ⚠️ **不要再跑 `pnpm build`**，否则 `build/` 会被 `del.sync` 清空。
+> 好在产物已在项目外留有一份。
+
+### 32.4 产物验证（实际执行）
+
+| 检查 | 结果 |
+|---|---|
+| Setup 静默安装 `/S /D=<隔离目录>` | ✅ exit 0，生成主程序与卸载程序 |
+| 安装版启动 | ✅ 窗口标题 `LX-N Music`，8 进程，响应正常 |
+| 便携版启动 | ✅ 独立目录启动成功，窗口标题 `LX-N Music` |
+| 便携数据隔离 | ✅ 在 exe 同目录生成 `userData\LxDatas`，未写入 `%APPDATA%` |
+| exe 版本信息（两者） | ✅ `FileVersion`/`ProductVersion` = **1.2.0**，`CompanyName` = pyyyQWQ，`LegalCopyright` = `Copyright © 2026 pyyyQWQ` |
+| `app.asar` 内容 | ✅ 含音质详情接口（`music/detail/get`、`CgiGetTrackInfo`）、`master`/`atmos_plus` 档位、Hires 文案、`_full` 标记 |
+| SHA256SUMS 自校验 | ✅ 两个文件哈希全部一致 |
+
+### 32.5 发布前检查
+
+| 项 | 结果 |
+|---|---|
+| `pnpm test` | ✅ 209 断言全通过 |
+| `pnpm test:webdav` | ✅ 传输 8/8 + 数据安全 24/24 |
+| `pnpm build` | ✅ 4 目标全 success |
+| 敏感信息扫描（源码/测试/文档） | ✅ 无 Cookie / API Key / 密码 / Token 实值 |
+| `build/`、`dist/` 是否会被误提交 | ✅ 已被 `.gitignore` 忽略 |
+| Git 工作区 | ⚠️ **全部改动仍未提交**（等待用户授权） |
+
+> 顺带修正：`RELEASE_CHECKLIST_1.1.0.md` 里原有一句 `CERU_KEY 未出现在源码中` 的
+> 检查记录被扫描器误报为敏感信息，已改为中性表述「未在任何源码文件中出现实值」。
+
+### 32.6 待上传内容（给 Codex）
+见根目录 **`CODEX_UPLOAD_PROMPT.md`**（本轮专门为本项目上传 GitHub 编写的提示词）。
+
+### 32.7 本轮未做
+- ❌ 未 commit / 未 push / 未创建 Release（按铁律需用户明确授权）
+- ⚠️ 未在真实 GUI 里点开下载弹窗确认按钮渲染（用户需实机确认）

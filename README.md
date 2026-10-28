@@ -2,7 +2,7 @@
 
 LX-N 是 **LX Music 桌面版** 的独立 Windows 衍生构建，重点补充网易云音乐账号网页登录、用户歌单与歌曲喜欢/取消喜欢等能力。
 
-当前正式版本：**1.1.0**（Windows x64，Electron 42.11.6）。
+当前正式版本：**1.2.0**（Windows x64，Electron 42.11.6）。
 
 > 本项目仍是独立构建，不是 LX Music 官方的统一版本，也不代表上游项目的发布承诺。安装包目前未做代码签名，请从你信任的发布页下载并核对 SHA-256。
 
@@ -14,8 +14,8 @@ LX-N 是 **LX Music 桌面版** 的独立 Windows 衍生构建，重点补充网
 
 | 文件 | 用途 |
 | --- | --- |
-| `lx-netease-music-desktop-v1.1.0-x64-Setup.exe` | 常规安装版，创建开始菜单和桌面快捷方式，可在“应用和功能”中卸载 |
-| `lx-netease-music-desktop-v1.1.0-x64-portable.exe` | 单文件便携版，无需安装，适合放在可写的独立目录中使用 |
+| `lx-netease-music-desktop-v1.2.0-x64-Setup.exe` | 常规安装版，创建开始菜单和桌面快捷方式，可在“应用和功能”中卸载 |
+| `lx-netease-music-desktop-v1.2.0-x64-portable.exe` | 单文件便携版，无需安装，适合放在可写的独立目录中使用 |
 
 校验值见发布目录中的 `SHA256SUMS.txt` 或对应 Release 说明。
 
@@ -30,7 +30,7 @@ LX-N 是 **LX Music 桌面版** 的独立 Windows 衍生构建，重点补充网
 
 ### 便携版
 
-直接双击 `lx-netease-music-desktop-v1.1.0-x64-portable.exe`。程序会把运行文件解压到系统临时目录，但**用户数据保存在便携版 exe 同目录的 `userData` 文件夹**。因此：
+直接双击 `lx-netease-music-desktop-v1.2.0-x64-portable.exe`。程序会把运行文件解压到系统临时目录，但**用户数据保存在便携版 exe 同目录的 `userData` 文件夹**。因此：
 
 - 便携版所在目录必须可写；
 - 不建议把便携版直接放进 `Program Files`；
