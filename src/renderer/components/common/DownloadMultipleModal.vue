@@ -5,13 +5,18 @@
       <base-btn :class="$style.btn" @click="handleClick('128k')">{{ $t('download__normal') }} - 128K</base-btn>
       <base-btn :class="$style.btn" @click="handleClick('320k')">{{ $t('download__high_quality') }} - 320K</base-btn>
       <base-btn :class="$style.btn" @click="handleClick('flac')">{{ $t('download__lossless') }} - FLAC</base-btn>
-      <base-btn :class="$style.btn" @click="handleClick('flac24bit')">{{ $t('download__lossless') }} - FLAC Hires</base-btn>
+      <base-btn :class="$style.btn" @click="handleClick('hires')">{{ getQualityLabel('hires', $t) }}</base-btn>
+      <base-btn :class="$style.btn" @click="handleClick('atmos')">{{ getQualityLabel('atmos', $t) }}</base-btn>
+      <base-btn :class="$style.btn" @click="handleClick('atmos_plus')">{{ getQualityLabel('atmos_plus', $t) }}</base-btn>
+      <base-btn :class="$style.btn" @click="handleClick('master')">{{ getQualityLabel('master', $t) }}</base-btn>
     </main>
   </material-modal>
 </template>
 
 <script>
+import { toRaw } from '@common/utils/vueTools'
 import { createDownloadTasks } from '@renderer/store/download/action'
+import { getQualityLabel } from '@common/utils/quality'
 
 export default {
   props: {
@@ -40,8 +45,14 @@ export default {
   },
   emits: ['update:show', 'confirm'],
   methods: {
+    getQualityLabel,
     handleClick(quality) {
-      void createDownloadTasks(this.list.filter(item => item.source != 'local'), quality, this.listId)
+      // 同 DownloadModal：必须 toRaw 解代理，否则 Worker postMessage 会
+      // 抛 DataCloneError（could not be cloned）。
+      const list = toRaw(this.list)
+        .filter(item => item.source != 'local')
+        .map(item => toRaw(item))
+      void createDownloadTasks(list, quality, this.listId)
       this.handleClose()
       this.$emit('confirm')
     },
