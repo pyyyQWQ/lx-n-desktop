@@ -11,6 +11,8 @@ const tests = [
   'accountLogic.test.mjs',
   'updateFeed.test.mjs',
   'dailyRec.test.mjs',
+  'dailyRecAutoSave.test.mjs',
+  'tempListMeta.test.mjs',
   'quality.test.mjs',
   'webdavSync.test.mjs',
 ]
