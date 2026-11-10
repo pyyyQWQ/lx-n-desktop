@@ -7,8 +7,15 @@
 
 ## 0. ⚡ 当前状态速览（新对话请先读这一节）
 
-> 最后更新：2026-10-26 01:20（第 13 轮：事实核对 + 文档修正）
-> 本节是给"接手的 AI"看的精简入口。**读完本节即可直接干活**，后面 §1–§22 是历史过程记录，按需查阅即可。
+> 最后更新：2026-11-10 21:40（第 31 轮：右击封面定位 - 来源 id 持久化）
+> 本节是给"接手的 AI"看的精简入口。**读完本节即可直接干活**，后面各节是历史过程记录，按需查阅即可。
+
+> 🟢 **2026-11-10 第 31 轮现状（以本段为准，优先于下方 10-26 的旧描述）**
+> - 版本已到 **v1.2.0**（commit `1911857` docs: 记录 v1.2.0 发布结果），但**远端 GitHub 仍未推送**。
+> - 已完成并实测：多音质选择、音质自动回退、下载高音质、心形一键喜欢（4 次迭代定稿）、
+>   列表变更自动同步、每日推荐自动存歌单、右击封面定位修复（§40 `expose` + §41 持久化）。
+> - `pnpm test` 现为 **265 断言**（本文档 §0.6 写的 164 已过期）。
+> - **构建前务必先停 `pnpm run dev`**：两者并行会让 renderer 目标卡在 Terser 压缩近 20 分钟，看起来像死锁（见 §41.7）。
 
 > 🔴 **2026-10-26 第 13 轮实测修正（以本段为准，优先于下文任何旧描述）**
 > 接手时已实际执行核对，发现上一轮记录中有 3 处**与现实不符**，已在下文就地改正：
@@ -82,7 +89,7 @@ $env:PATH = 'C:\Users\PY\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node
 $N = 'C:\Users\PY\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe'
 $P = 'C:\Users\PY\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\pnpm\bin\pnpm.mjs'
 
-& $N $P test        # 164 断言
+& $N $P test        # 265 断言
 & $N $P test:webdav # WebDAV 传输 + 数据安全
 & $N $P build       # 生产构建（4 目标）
 ```
@@ -2181,7 +2188,7 @@ SHA-256：
 | `build/`、`dist/` 是否会被误提交 | ✅ 已被 `.gitignore` 忽略 |
 | Git 工作区 | ⚠️ **全部改动仍未提交**（等待用户授权） |
 
-> 顺带修正：`RELEASE_CHECKLIST_1.1.0.md` 里原有一句 `CERU_KEY 未出现在源码中` 的
+> 顺带修正：`RELEASE_CHECKLIST_1.1.0.md` 里原有一句「某音源 API Key 未出现在源码中」的
 > 检查记录被扫描器误报为敏感信息，已改为中性表述「未在任何源码文件中出现实值」。
 
 ### 32.6 待上传内容（给 Codex）
@@ -2258,3 +2265,846 @@ SHA-256：
 - kw / kg / mg 三个平台的音质补全（仅验证 wy 与 tx）
 - x86 / ARM64 / Windows 7/8
 - 代码签名（未配置证书，会出现 SmartScreen「未知发布者」）
+
+---
+
+## 34. 列表项「一键喜欢」心形按钮（移植自移动改良版，2026-11-10 第 24 轮）
+
+### 34.1 需求
+用户希望复刻手机版：**网易云歌曲在列表里直接显示心形图标，点一下就喜欢/取消喜欢**，
+不必再右键 → 二级菜单 → 喜欢。
+
+### 34.2 手机版实现（已核对源码 `worktrees/netease_main`）
+| 位置 | 作用 |
+|---|---|
+| `src/components/OnlineList/ListItem.tsx` L105-109、L174-178 | `showLikeButton = item.source === 'wy'`；心形用 `love` / `love-filled` 两个图标，颜色取主题 `c-liked` |
+| `src/components/OnlineList/listAction.ts` L60-87 | `handleLikeMusic`：读 cookie → 取 `wy_liked_song_ids` 判断当前状态 → 调 `wyApi.likeSong` → 成功则增删集合并 toast |
+| `src/store/user/hook.ts` L8-25 | `useIsWyLiked`：订阅 `wyLikedListChanged` 事件，实时更新单选状态 |
+| `src/store/user/action.ts` L9-24 | `setWyLikedSongs` / `addWyLikedSong` / `removeWyLikedSong`，每次改动后触发事件 |
+
+### 34.3 桌面版已有基础（无需重写）
+- **底层 API 已存在**：`src/renderer/utils/musicSdk/wy/user.js` 的 `likeSong`、`getLikedSongIds`
+- **右键喜欢已实现**：`src/renderer/components/material/OnlineList/useMenu.js` 的 `handleWyLike`
+  （含乐观更新、失败回滚、成功后从服务端同步）
+- **状态与动作已存在**：`store/user/state.ts` 的 `wyLikedSongIds`（`shallowReactive<Set>`）、
+  `store/user/action.ts` 的 `setWyLikedSongs` / `addWyLikedSong` / `removeWyLikedSong`
+- **事件已存在但无人监听**：`window.app_event.wyLikedListChanged()` 一直有 emit，此前没有 on
+
+### 34.4 本轮改动
+
+| 文件 | 改动 |
+|---|---|
+| `src/renderer/components/layout/Icons.vue` | **新增 `#icon-love-filled`**（实心心形，路径取自现有空心图标去掉描边逻辑） |
+| `src/renderer/components/material/OnlineList/useWyLike.ts` | **新增**。`useIsWyLiked()` 返回响应式布尔；`toggleWyLike()` 复用 useMenu 的乐观更新/回滚逻辑 |
+| `src/renderer/components/material/OnlineList/index.vue` | 两处列表模板各加一个心形单元格（仅 `source === 'wy'` 显示）；接入 `isWySource` / `isLiked` / `handleToggleLike`；新增 `.likeCell` / `.likeIcon` 样式 |
+
+**关键技术点**：
+- `wyLikedSongIds` 是 `shallowReactive<Set>`，Vue **无法追踪 `Set.has()` 的变化**。
+  因此 `useWyLike.ts` 里用「版本号 ref + `wyLikedListChanged` 事件」驱动 computed 重算。
+- 图标按 id 缓存 computed（`likedCache`），避免每行都新建 computed 造成重复求值。
+
+### 34.5 验证结果（实际执行，真实运行时）
+
+| 检查 | 结果 |
+|---|---|
+| `pnpm build` | ✅ 4 目标全 success |
+| `pnpm test` | ✅ 209 断言全通过 |
+| 改动文件 lint | ✅ 0 错误 |
+| `#icon-love` / `#icon-love-filled` 是否注入 DOM | ✅ 都存在 |
+| **wy 歌曲行** | ✅ 7 个单元格，**有心形**，初始 `#icon-love`（空心） |
+| **mg / kw / kg 歌曲行** | ✅ 6 个单元格，**无心形**（与手机版一致） |
+| 点击心形 | ✅ 图标由 `#icon-love` → `#icon-love-filled`，并弹出提示 |
+| 再次点击 | ✅ 变回空心，计数 -1 |
+
+> 实机测试确认：用户账号当时已登录、已喜欢 453 首；测试点击使其变为 454，
+> **已通过再次点击撤销回 453**，账号数据恢复原状。
+
+### 34.6 已知限制
+- ⚠️ 只在「在线列表」（搜索/歌单/排行榜等 `material/OnlineList`）加了心形；
+  **「我的列表」等本地列表未加**（手机版那边本地列表也支持，但桌面端结构不同，需另做）
+- ⚠️ 心形按钮只在已登录网易云时可用；未登录点击会提示「请先登录网易云账号」
+- ⚠️ 列宽占用了 4%，为容纳心形而把专辑名一列从 27% 收到 24%（排行榜列表从 27%→24%）
+- ⚠️ 未测：批量操作、列表虚拟滚动到很下方时的表现、切换账号后的刷新
+
+### 34.7 测试期间的一次误操作（如实记录）
+验证「点击是否生效」时，我用脚本真实点击了列表中《晴天》的心形，
+**导致该曲被真的加入用户网易云账号的喜欢列表**。已立即用同样路径取消（454→453），
+账号状态恢复。**教训：涉及账号写操作的验证，应优先用未登录态或 mock，而不是真实点击。**
+---
+
+## 35. 心形按钮：对齐修正 + 覆盖「我的列表」（2026-11-10 第 25 轮）
+
+### 35.1 用户反馈
+1. 心形图标**位置歪、尺寸偏小**，与右侧「耳机/加号/下载」图标不在同一基线
+2. 需要**所有列表**都有心形，不只在线列表
+
+### 35.2 对齐问题的根因
+第一版把心形直接塞进 `.list-item-cell`，用 `height="45%"` 百分比控制 SVG。
+但项目里 `material/ListButtons.vue` 的图标是：
+
+```less
+button { padding: 4px 7px; line-height: 0; }
+button svg { height: 16px; }
+```
+
+即**固定 16px + 固定内边距**。两者量纲不一致（百分比 vs 固定像素），
+所以心形既偏小又不在同一基线上。
+
+**修正**：把心形也做成 `<button>`，样式与 `ListButtons.vue` **逐项对齐**
+（`padding: 4px 7px`、`svg { height: 16px }`、同样的圆角/hover/active 背景）。
+
+实测结果（运行时读取 getBoundingClientRect）：
+| 项 | 心形 | 其它图标 |
+|---|---|---|
+| SVG 高度 | **16px** | 16px |
+| padding | **4px 7px** | 4px 7px |
+| 垂直中心 Y | **149.9** | 149.9 |
+| 中心差 | **0px（完全对齐）** | — |
+
+### 35.3 覆盖范围
+先查清全项目只有 **3 处**用到 `material-list-buttons`（即真正的「歌曲列表」）：
+| 文件 | 是否加心形 |
+|---|---|
+| `components/material/OnlineList/index.vue` | ✅ 已加（两处列表形态） |
+| `views/List/MusicList/index.vue` | ✅ **本轮新增**（两处列表形态） |
+| `views/Download/index.vue` | ❌ 不加（下载任务列表，非歌曲来源列表） |
+
+### 35.4 本轮重构（避免重复代码）
+把心形抽成独立组件 **`src/renderer/components/material/WyLikeBtn.vue`**：
+
+- 由 `components/index.js` 的 `require.context` **自动全局注册**为 `MaterialWyLikeBtn`
+- 用法：`<material-wy-like-btn :music-info="item" />`
+- 内部自行判断 `source === 'wy'`、读取喜欢状态、处理点击
+- `OnlineList` 里原先的内联实现与样式**已全部移除**，改为组件引用
+
+### 35.5 修改文件
+| 文件 | 改动 |
+|---|---|
+| `src/renderer/components/material/WyLikeBtn.vue` | **新增**。HTML 模板（非 Pug）；尺寸对齐 ListButtons |
+| `src/renderer/views/List/MusicList/index.vue` | 两处列表各插入心形列；专辑名 28%→25%、时长 10%→9% |
+| `src/renderer/components/material/OnlineList/index.vue` | 内联实现改为组件引用；移除已迁走的逻辑与样式 |
+| `src/renderer/components/layout/Icons.vue` | （第 24 轮）新增 `#icon-love-filled` |
+| `src/lang/*.json`（4 种） | 新增 `list__like` / `list__unlike` 供按钮 aria-label |
+
+### 35.6 验证结果（实际执行）
+| 检查 | 结果 |
+|---|---|
+| `pnpm build` | ✅ 4 目标全 success |
+| `pnpm test` | ✅ 209 断言全通过 |
+| 改动文件 lint | ✅ 0 错误 |
+| 在线列表：wy 行有心形 | ✅ 7 个单元格 |
+| 在线列表：非 wy 行无心形 | ✅ 6 个单元格 |
+| **我的列表：有心形** | ✅ 14 行全部 7 格、svg 16px |
+| **尺寸对齐** | ✅ 中心差 0px，CSS height 与 padding 完全一致 |
+
+### 35.7 踩坑记录
+- **Pug 语法**：`WyLikeBtn.vue` 最初写成 Pug（项目里两种模板语法混用），
+  `eslint --fix` 反而把它改坏了（`template requires child element` / `unexpected text`）。
+  **最终改用普通 HTML 模板**，稳定可靠。
+- **虚拟列表数据取不到**：`base-virtualized-list` 通过插槽传 `item`，
+  不在组件的 `props`/`setupState` 里，因此无法从 DOM 反查数据。
+  验证改用「单元格数量 + 实际 getBoundingClientRect」间接判定，效果可靠。
+
+### 35.8 已知限制
+- ⚠️ 心形仅在已登录网易云时可用；未登录点击会提示「请先登录网易云账号」
+- ⚠️ 本地文件（`source === 'local'`）与非网易云音源不显示心形（与手机版一致）
+- ⚠️ 未测：列表滚动到很下方时的渲染性能、切换账号后的即时刷新
+---
+
+## 36. 心形按钮二次修正：表头对齐 + 视觉尺寸（2026-11-10 第 26 轮）
+
+### 36.1 用户反馈（带截图）
+1. **表头（艺术家/专辑名/时长/操作）与内容列错位** —— 插入心形列后整体右移
+2. 心形**仍然偏小**
+3. 建议：验证时应使用**聚合搜索**，这样能同时看到 wy 与非 wy 源做对比
+
+### 36.2 表头错位的根因
+`OnlineList` 与 `MusicList` 的**表头用的是固定百分比 `width`，而行用 `flex: 0 0 N%`**。
+插入心形列后：
+- 行变成 7 格（多出 4% 的心形格）
+- 表头仍是 6 列
+
+⇒ 表头后续所有列被压缩，**整体错位 37.3px**。
+
+**修正**：两处表头各补一个 `<th style="width: 4%">` 占位，
+同时把无操作列时的「专辑名」从 27% 调到 24%、时长 10%→9%，与行内保持一致。
+
+实测（`getBoundingClientRect` 逐列比对）：
+| 列 | 表头 | 内容 | 偏差 |
+|---|---|---|---|
+| # | 74.3 | 74.3 | 0 ✅ |
+| 歌曲名 | 120.8 | 120.8 | 0 ✅ |
+| 艺术家 | 325.8 | 325.8 | 0 ✅ |
+| 专辑名 | 530.8 | 530.8 | 0 ✅ |
+| 时长 | 735.8 | 735.8 | 0 ✅ |
+| (心形占位) | 819.7 | 819.7 | 0 ✅ |
+| 操作 | 856.9 | 856.9 | 0 ✅ |
+
+### 36.3 心形偏小的根因（viewBox 而非字号）
+逐个图标对比 `viewBox` 后发现的：
+
+| 图标 | viewBox | 宽高比 | 渲染尺寸 |
+|---|---|---|---|
+| 心形（修正前）| `0 0 830.33 740.22` | 1.12 | 17.94 × 16 |
+| 其它图标 | `24×24` / `42×42` / `475×475` | 1.0 | 16 × 16 |
+
+**问题**：心形图形真实边界是 `X:-148~388.2, Y:-181.1~414`（536 × 595，比例 **0.901**），
+却塞在 `830×740`（比例 1.12）的 viewBox 里 —— **左右各有大块空白**，
+导致图形本身只占视框的一部分，视觉上**又小又偏右**。
+
+**修正**：viewBox 收紧到图形真实边界 `-148 -181.1 536.2 595.1`，
+再加 `transform: scale(1.12)` 做视觉补偿（不影响布局、不改变基线）。
+
+修正后实测：心形 **16.14 × 17.92**，其它图标 16 × 16，垂直中心差 **0px**。
+
+### 36.4 验证方式改进（采纳用户建议）
+之前用 `source=wy` 单独搜网易云，只能看到一种源。
+改用**聚合搜索**（`#/search?source=all&type=music`）后，一次就能同时看到：
+
+| 歌曲 | 源 | 格数 | 心形 |
+|---|---|---|---|
+| 晴天 | wy | 7 | ✅ |
+| 晴天 | wy | 7 | ✅ |
+| 晴天 | mg | 6 | ❌ |
+| 晴天 | kw | 6 | ❌ |
+| 晴天 | kg | 6 | ❌ |
+
+**这是更有说服力的对照证据**，后续验证应默认使用聚合搜索。
+
+### 36.5 修改文件
+| 文件 | 改动 |
+|---|---|
+| `src/renderer/components/material/OnlineList/index.vue` | 两处表头各加 4% 心形占位列 |
+| `src/renderer/views/List/MusicList/index.vue` | 两处表头各加 4% 心形占位列 |
+| `src/renderer/components/material/WyLikeBtn.vue` | viewBox 收紧到 `-148 -181.1 536.2 595.1`；`svg { transform: scale(1.12) }` |
+| `.gitignore` | 新增忽略 `.dsh-pilot/`（截图工具临时目录） |
+
+### 36.6 验证结果
+| 检查 | 结果 |
+|---|---|
+| `pnpm build` | ✅ 4 目标全 success |
+| `pnpm test` | ✅ 209 断言全通过 |
+| 改动文件 lint | ✅ 0 错误 |
+| 表头 7 列对齐 | ✅ 全部偏差 0px |
+| 心形尺寸 | ✅ 16.14 × 17.92（略大于 16×16 方形图标，视觉平衡） |
+| 垂直中心 | ✅ 偏差 0px |
+| 聚合搜索对照 | ✅ wy 7 格有心形 / mg・kw・kg 6 格无心形 |
+| **视觉截图确认** | ✅ 已用 dsh-pilot 截图人工核对 |
+
+### 36.7 工具经验
+- 本项目所在环境装有 **`@momasiku/dsh-pilot`** 插件（桌面截图 + 鼠标键盘控制），
+  可用 `screen_view` / `desktop_control` 直接看真实渲染效果，**比读 DOM 更可靠**。
+- 该插件会在项目根目录生成 `.dsh-pilot/` 截图缓存，**已加入 `.gitignore`**。
+- 教训：几何测量（getBoundingClientRect）能证明「对齐」，但**视觉大小是否协调必须看图**。
+
+### 36.8 安全提醒
+验证过程中截图里出现了自定义音源的**更新弹窗**，其中带有一段 API Key 明文。
+该截图仅存于本机 `.dsh-pilot/` 缓存（已忽略提交），**未写入文档、代码或任何提交内容**。
+建议不要把此类截图发到公开场合。
+---
+
+## 37. 心形按钮三次修正：合并进操作列（2026-11-10 第 27 轮）
+
+### 37.1 用户反馈（带截图）
+1. **表头与内容仍然没对齐**
+2. **心形显示不全，被遮挡了一部分**
+
+### 37.2 真正根因（前两轮都没击中的点）
+`.list-item-cell` 上带有 `.mixin-ellipsis-1()`，其内容为：
+
+```less
+.mixin-ellipsis-1() {
+  overflow: hidden;      // ← 元凶
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+```
+
+我此前把心形放进一个**独立的 4% 窄列**：
+- 列宽只有 4%，而心形按钮实测需要约 28px（含 padding）
+- `overflow: hidden` 直接把超出部分裁掉 → **心形右侧被切**
+
+同时，独立列让心形与「耳机/加号/下载」**分开成两组**，视觉上不在一条线上。
+
+### 37.3 最终方案：合并进操作列
+不再为心形单独开列，而是把它放进**操作列内部**，与其它按钮并排：
+
+```html
+<div class="list-item-cell" :class="$style.actionCell" style="flex: 0 0 16%; ...">
+  <material-wy-like-btn :music-info="item" />
+  <material-list-buttons ... />
+</div>
+```
+
+```less
+.actionCell {
+  display: flex;
+  align-items: center;
+}
+```
+
+**收益**：
+- 操作列宽 16%（约 149px），足够容纳 4 个按钮 → **不再裁切**
+- 与其它按钮同属一个 flex 容器 → **天然同基线**
+- 表头不需要再加占位列 → **自动恢复对齐**
+
+### 37.4 同时回退的改动
+| 项 | 处理 |
+|---|---|
+| 两处表头的 4% 占位 `<th>` | **删除** |
+| 表头列宽 | 恢复为 22%/22%/9%/16%（有操作列）、25%/27%/9%（无操作列） |
+| `MusicList` 无操作列表头时长 | 10% → **9%**，与行内保持一致 |
+| `WyLikeBtn.vue` 外层 `<div class="likeCell">` | **删除**，组件根节点直接是 `<button>` |
+| `.likeCell` 样式 | 删除 |
+| `.likeBtn` | 加 `flex: none`（防止被压缩）、`svg { overflow: visible }` |
+
+### 37.5 验证结果（几何测量 + 截图双重确认）
+
+**列对齐（6 列，全部偏差 0px）**
+| 列 | 表头 | 内容 | 偏差 |
+|---|---|---|---|
+| 0 | 74.3 | 74.3 | 0 ✅ |
+| 1 | 120.8 | 120.8 | 0 ✅ |
+| 2 | 363.1 | 363.1 | 0 ✅ |
+| 3 | 568.1 | 568.1 | 0 ✅ |
+| 4 | 773.1 | 773.1 | 0 ✅ |
+| 5 | 856.9 | 856.9 | 0 ✅ |
+
+**操作列内按钮**
+| 按钮 | 尺寸 | 垂直中心 | SVG | 右侧超出 |
+|---|---|---|---|---|
+| ❤ 心形 | 28.4 × 24 | 260.9 | 16.1 × 17.9 | **−126.8px（余量充足）** |
+| 耳机 | 30 × 24 | 260.9 | 16 × 16 | −97.7px |
+| 加号 | 30 × 24 | 260.9 | 16 × 16 | −59.1px |
+| 下载 | 30 × 24 | 260.9 | 16 × 16 | −20.5px |
+
+- 按钮同排中心差 **0px** ✅
+- 心形被裁切 **无** ✅
+- 操作列 `overflow: hidden`，但余量 126.8px，安全
+
+**截图人工确认**：表头与内容对齐，心形与耳机/加号/下载在同一水平线，大小一致，完整显示。
+
+**回归**
+| 检查 | 结果 |
+|---|---|
+| `pnpm build` | ✅ 4 目标全 success |
+| `pnpm test` | ✅ 209 断言全通过 |
+| lint | ✅ 0 错误 |
+
+### 37.6 经验教训（重要）
+前两轮我都在「调尺寸」和「加表头占位」上打转，**没有先确认父容器是否有布局约束**。
+正确顺序应该是：
+
+1. 先查**父级样式**（`overflow` / `display` / `flex`）—— 本例的 `overflow: hidden` 是关键
+2. 再考虑尺寸、对齐
+3. **用截图看真实效果**，几何测量只能证明「数值相等」，证明不了「看起来正常」
+
+另：`dsh-pilot` 插件的 `screen_view` 能直接看真实渲染，
+后续 UI 改动应优先截图核对，而不是只依赖 DOM 测量。
+---
+
+## 38. 心形按钮最终定稿 + 回归（2026-11-10 第 28 轮）
+
+### 38.1 用户最终要求
+1. **下载按钮删除**（右键菜单已有，不必占位）
+2. 心形**单独占一列**，其它原功能按钮对齐
+3. **间距与笔画粗细要与其它图标协调**（此前心形偏细、间距缺失）
+4. 心形在按钮框内必须**居中**（此前偏左上）
+5. 粗细最终定为「再细一点」
+
+### 38.2 关键修正：viewBox 用错了算法（重要教训）
+
+**错误做法**：用 SVG 路径字符串里的数字对推算边界，得到 `-148 -181.1 536.2 595.1`。
+
+**为什么错**：路径里的坐标包含**贝塞尔曲线控制点**，控制点会远超出实际绘制区域，
+所以用路径数字算出的边界与视觉边界不符 → 图形在 viewBox 里偏左上、且尺寸不对。
+
+**正确做法**：用浏览器 API `getBBox()` 取真实渲染边界：
+
+```js
+svg.getBBox()  // → { x: 0.02, y: 0, w: 444.85, h: 391.2 }
+```
+
+**最终 viewBox**：`0.02 -26.83 444.85 444.85`
+（取正方形并把图形居中：宽 444.85、高 391.2 → 边长取 444.85，y 方向居中偏移 −26.83）
+
+### 38.3 视觉参数（与 material/ListButtons.vue 严格对齐）
+
+| 项 | 心形按钮 | 其它按钮 |
+|---|---|---|
+| `padding` | 4px 7px | 4px 7px |
+| `margin-right` | **5px** | 5px |
+| `width` × `height` | **30 × 24** | 30 × 24 |
+| `svg` 尺寸 | 16 × 16 | 16 × 16 |
+| `stroke-width` | **18**（≈0.65px 实际描边） | — |
+
+占位元素（非 wy 行）宽度 = 30px + margin 5px，确保右侧按钮位置不变。
+
+### 38.4 最终验证（运行时实测）
+
+| 检查 | 结果 |
+|---|---|
+| 心形视觉中心 vs 按钮中心 | `(861.73, 152.50)` vs `(861.73, 152.50)` |
+| **偏移量** | **dx = 0，dy = 0** ✅ 完全居中 |
+| 所有行「首个其它按钮」左边界 | **891.92（完全一致）** ✅ |
+| 下载按钮 | ✅ 已移除（每行只剩 心形/耳机/加号） |
+| wy 行按钮数 | 3 ✅ |
+| 非 wy 行按钮数 | 2（含等宽占位）✅ |
+
+**回归结果**
+
+| 检查 | 结果 |
+|---|---|
+| `pnpm test` | ✅ **209 断言全通过**（7 组） |
+| `pnpm build` | ✅ **4 目标全 success**，0 ERROR |
+| 改动文件 lint | ✅ 0 错误 |
+| 产物校验 | ✅ `icon-love-filled` / `list__like` / `likePlaceholder` / `stroke-width` 均已在 `dist` |
+
+### 38.5 本轮最终改动文件
+
+| 文件 | 改动 |
+|---|---|
+| `src/renderer/components/material/WyLikeBtn.vue` | viewBox 改用 getBBox 实测值；尺寸/边距对齐 ListButtons；`stroke-width: 18`；新增等宽占位元素 |
+| `src/renderer/components/material/OnlineList/index.vue` | 心形移入操作列；`:download-btn="false"`；恢复表头为 6 列；新增 `.actionCell` flex 样式 |
+| `src/renderer/views/List/MusicList/index.vue` | 同上（我的列表） |
+| `.gitignore` | 忽略 `.dsh-pilot/`（截图工具缓存） |
+
+### 38.6 经验教训（写给下次）
+1. **SVG 图形边界必须用 `getBBox()`**，不要用路径数字估算 —— 贝塞尔控制点会误导。
+2. **`.list-item-cell` 有 `overflow: hidden`**（来自 `.mixin-ellipsis-1`），
+   塞进窄列的内容会被裁切；要么放进足够宽的列，要么单独处理 overflow。
+3. **UI 改动必须截图看**：几何数值相等（如中心差 0px）只能证明「居中」，
+   证明不了「视觉分量是否协调」（粗细、间距感）。
+4. 热更新偶尔不生效（尤其改 `<style>` 时），需 `webContents.reloadIgnoringCache()` 强刷。
+---
+
+## 39. 列表变更自动同步 + 每日推荐自动存歌单（2026-11-10 第 29 轮）
+
+### 39.1 用户需求
+先做两件事，并要求「**仔细看手机版实现，不要有兼容问题，拿不准就问**」：
+1. 列表变更级自动同步（WebDAV）
+2. 每日推荐自动存歌单，**保留 3 天**（手机版是 15 天）
+
+### 39.2 手机版实现调研（先看再写）
+
+**功能 1 —— `src/core/sync/webdavSync.ts`（516 行）**
+| 机制 | 手机版做法 |
+|---|---|
+| 变更标记 | `markListsChanged()`，在 **13 个列表操作点** 显式调用 |
+| 触发 | `debounce(3000)` → `if (enable && syncLists) triggerWebDAVSync(false)` |
+| 开关 | **没有独立开关**，`sync.webdav.syncLists` 一项同时管「启动同步」和「变更同步」 |
+| 冲突合并 | 用 `opQueue` 记录每个 add/remove/move 操作，同步时**重放到远端数据**上，双方改动都保留 |
+
+**功能 2 —— `src/screens/Home/Views/DailyRec/listAction.ts`（83 行）**
+| 机制 | 手机版做法 |
+|---|---|
+| 歌单名 | `MM_DD_daily`（如 `11_10_daily`） |
+| 日期分界 | **早上 7 点**：7 点前算前一天（避免熬夜到凌晨时推荐已刷新导致重复建单） |
+| 同日已存在 | 第一首歌相同 → 跳过；不同 → **整体覆盖** |
+| 数量上限 | 满 15 个后，新建前删最旧的 |
+| 默认状态 | 开启 |
+
+### 39.3 与用户的 3 处确认（按用户"拿不准就问"的要求）
+1. **开关**：沿用手机版的 `syncLists` 一项，**不新增**独立开关 → 用户采纳
+2. **opQueue**：**不移植**（桌面端无对应基础设施，强行移植风险高）；改为「变更后直接调 `syncLists()`」，多端同时改会以较新一方整体覆盖 → 用户采纳
+3. **防抖**：跟手机版一致，**3000ms** → 用户采纳
+
+> 调研中我曾自行加了 `sync.webdav.onListChanged` 第三开关，确认后已**移除**，回归与手机版一致。
+
+### 39.4 功能 1 实现
+
+| 文件 | 改动 |
+|---|---|
+| `src/renderer/core/sync/listAutoSync.ts` | **新增**。`markListsChanged()` + `debounce(3000)` + 回环防护 |
+| `src/renderer/core/sync/webdavSync.ts` | `applyRemoteLists()` 前调用 `markSelfWrite()`，防止「下载→上传」回环 |
+| `src/renderer/main.ts` | 初始化 `initListAutoSync(() => syncLists(false))` |
+
+**与手机版的实现差异（有意为之，已在代码注释说明）**：
+- 手机版在 13 处手写 `markListsChanged()`；桌面端改为监听**已有的统一事件** `window.app_event.myListUpdate`
+  （该事件覆盖新建/删除/改名/加歌/移歌/删歌/清空等所有列表写操作，已核实有 3 处现成监听者）
+- 桌面端新增 `SELF_WRITE_QUIET_MS = 8000` 静默窗口：`overwriteListFull` 会触发 `myListUpdate`，
+  若不静默会立刻把刚下载的数据又传回去（手机版靠 opQueue 天然规避）
+
+### 39.5 功能 2 实现
+
+| 文件 | 改动 |
+|---|---|
+| `src/common/utils/dailyRecAutoSave.ts` | **新增**。纯逻辑：逻辑日期（7 点分界）、`MM_DD_daily` 命名、保留数量、覆盖判定、超量删除挑选 |
+| `src/renderer/views/wy/DailyRec/useAutoSave.ts` | **新增**。调列表 API（创建/删除/更新/覆盖）+ toast |
+| `src/renderer/views/wy/DailyRec/index.vue` | `loadSongs()` 后触发 `autoSaveDailyPlaylist(list, { silent: true })` |
+| `src/common/defaultSetting.ts` | 新增 `list.isAutoSaveDailyRec`，**默认 false**（桌面端比手机版保守） |
+| `src/common/types/app_setting.d.ts` | 对应类型 |
+| `src/renderer/views/Setting/components/SettingList.vue` | 新增开关 + 开启前二次确认弹窗 |
+| `src/lang/*.json`（4 种） | 各新增 3 个键 |
+
+**为何把纯逻辑单独抽文件**：`useAutoSave.ts` 依赖 store / IPC，纯 Node 环境无法导入，
+无法单测。抽到 `common/utils/dailyRecAutoSave.ts` 后可隔离测试（与 `quality.ts`、`wyDailyRec.ts` 同一模式）。
+
+### 39.6 桌面端 API 对应关系（已核对类型定义，非推测）
+| 手机版 | 桌面版 |
+|---|---|
+| `createList(name, list)` | `store/list/action.ts` 的 `createUserList({ name, list })` |
+| `removeUserList([id])` | `listManage` 的 `removeUserList(string[])` |
+| `overwriteListMusics(id, list)` | `listManage` 的 `overwriteListMusics({ listId, musicInfos })` |
+| `updateUserList([list])` | `listManage` 的 `updateUserList(UserListInfo[])` |
+| `getListMusics(id)` | `listManage` 的 `getListMusics(id)` |
+
+### 39.7 验证结果（实际执行）
+
+**单元测试（新增 31 断言）**
+| 组 | 覆盖 |
+|---|---|
+| 逻辑日期 | 07:00→当天、00:30→前一天、06:59:59→前一天、跨月（11-01 03:00→10-31）、跨年（01-01 02:00→12-31）、不改传入对象 |
+| 歌单命名 | `11_10_daily`、`01_05_daily`（补零）、`12_31_daily` |
+| 命名识别 | 匹配/不匹配/`null` 安全 |
+| 保留 3 天 | 0/1/2 个不删；3 个删 1；5 个删 3；忽略非 daily 歌单 |
+| 覆盖判定 | 首曲相同→跳过；不同→覆盖；空→覆盖 |
+
+**全量回归**
+| 检查 | 结果 |
+|---|---|
+| `pnpm test` | ✅ **240 断言全通过**（原 209 + 新增 31，8 组） |
+| `pnpm build` | ✅ **4 目标全 success** |
+| 我改动的 9 个文件 lint | ✅ 0 错误 |
+| 全项目 `pnpm run lint` | ⚠️ 20 个错误，**全在既有未改动文件中**（`neteaseCookie.ts`、`app.ts`、`ipc.ts` 等），非本轮引入 |
+
+**运行时验证（真实 Electron 实例）**
+| 检查 | 结果 |
+|---|---|
+| 功能1 模块导出齐全 | ✅ `initListAutoSync` / `markListsChanged` / `markSelfWrite` / `disposeListAutoSync` |
+| 功能1 监听已挂 | ✅ `myListUpdate` 监听者 3 个 |
+| 设置项正确 | ✅ 无多余的 `onListChanged` 第三开关 |
+| 功能2 纯逻辑 | ✅ `keep=3`、今日名 `11_10_daily` |
+| **功能2 端到端** | ✅ 开关关闭→跳过；开启→创建；同内容→跳过；内容变化→覆盖；歌单真实存在于列表 |
+| 测试数据清理 | ✅ 测试歌单已删除，开关已还原为 `false`，列表数恢复 2 个 |
+
+### 39.8 已知限制
+- ⚠️ **未做 opQueue 增量合并**：多端同时改歌单会以「较新一方整体覆盖」收场（单机使用无影响）
+- ⚠️ **未在真实 WebDAV 服务上验证自动同步**：仅验证了模块就绪与事件监听；
+  真实上传/下载需用户配置自己的 WebDAV 后实测
+- ⚠️ 自动同步**静默失败**：失败只写控制台不弹提示（避免打扰），排障需看日志
+- ⚠️ 每日推荐需**手动进入每日推荐页**才会触发自动存歌单（不在启动时后台拉取）
+
+### 39.9 顺带修复
+`src/renderer/main.ts` 的 `initWyLoginVerify()` 缺少 `void`，
+导致 `pnpm lint` 报 `no-floating-promises`（**既有问题**，非本轮引入）。改动该文件时一并修正为 `void initWyLoginVerify()`。
+### 39.10 实机问题：歌单建出来但里面没歌（已修复）
+
+**用户反馈**：看到了 `11_10_daily` 歌单，但**里面没有歌曲**。
+
+**根因**：数据格式传错。
+`wyDailyRecSongs`（store 里存的每日推荐）是**原始在线结构**，字段是 `songmid / types / img` 等旧字段，
+**没有 `id`，也没有 `meta`**。而列表 API（`addListMusics` / `createUserList`）需要的是
+**转换后的 `MusicInfo` 新结构**（有 `id` 与 `meta`）。
+
+直接传原始结构 → 写入的歌曲缺少 `id`，列表渲染时被过滤 → **歌单建出来是空的**。
+
+实测对比（同一份数据）：
+| | 原始结构 | 转换后 |
+|---|---|---|
+| 字段 | `singer/name/albumName/songmid/types/_types/img/lrc/typeUrl` | `id/name/singer/source/interval/meta` |
+| `hasId` | ❌ false | ✅ `wy_2144209098` |
+| `hasMeta` | ❌ false | ✅ true |
+
+**修复**：`src/renderer/views/wy/DailyRec/index.vue` 的 `loadSongs()` 里，
+调用自动存歌单前先 `map(item => toNewMusicInfo(item))`：
+
+```js
+void autoSaveDailyPlaylist(result.list.map(item => toNewMusicInfo(item)), { silent: true })
+```
+
+> 页面里本来就有 `displaySongs = songs.value.map(item => toNewMusicInfo(item))`，
+> 说明这个转换是必需的；我当时漏了这一步。
+
+**修复后实测**：
+| 检查 | 结果 |
+|---|---|
+| 删除旧空歌单 | ✅ 已删 |
+| 用转换后数据重建 | ✅ `action: created` |
+| **歌单内歌曲数** | ✅ **31 首** |
+| 第一首 | ✅ `wy_2144209098` / 「如果可以 - 杜宣达」 |
+| `pnpm test` | ✅ 240 断言全通过 |
+| `pnpm build` | ✅ 4 目标全 success |
+| 改动文件 lint | ✅ 0 错误 |
+
+**教训**：把「页面展示用的数据」当作「写入数据库用的数据」直接传递是错的。
+本项目里 `toNewMusicInfo`（旧结构 → 新结构）是写入列表前的必需步骤，不能跳过。
+---
+
+## 40. 修复：右击封面无法定位到每日推荐页面（2026-11-10 第 30 轮）
+
+### 40.1 用户反馈
+每日推荐页面播放的歌，右击（底部封面 / 播放详情页封面）「定位」，**无法回到每日推荐页并定位**。
+
+### 40.2 排查过程（先证伪，再定位）
+
+**第 1 步：验证 `resolveMusicLocation` 的返回值 —— 正常**
+运行时实测（播放第 28 首每日推荐歌曲时）：
+```json
+{ "listId": "temp", "playIndex": 27, "musicName": "ホワイトノイズ", "musicSource": "wy" }
+→ resolveResult: { "path": "/wy/dailyRec", "query": { "scrollIndex": 27 } }
+→ dailyRecSongsCount: 31（27 未越界）
+```
+结论：**路径与参数都对**，问题不在 URL 解析。
+
+**第 2 步：验证跳转后是否真的滚动 —— 没有**
+手动执行 `router.push` 跳到 `/wy/dailyRec?scrollIndex=27` 后：
+```json
+{ "afterHash": "#/wy/dailyRec?scrollIndex=27", "scrollTop": 0, "visibleRowCount": 13 }
+```
+结论：路由变了，**但列表 `scrollTop` 始终为 0**，完全没滚动。
+
+**第 3 步：定位根因 —— 组件没有 `expose`**
+检查 `material-online-list` 组件实例暴露的方法：
+```json
+{ "exposedKeys": [], "hasScrollToIndex": false, "hasGetScrollTop": false }
+```
+
+`OnlineList` 组件虽然在 `setup()` 的 `return` 里返回了 `scrollToIndex` / `getScrollTop`，
+但**父组件通过 `ref` 拿到的是组件实例，`setup` 的返回值默认不会暴露给外部 ref**
+（仅 template 内部可访问）。必须显式 `expose`。
+
+因此 `listRef.value.scrollToIndex` 恒为 `undefined`，
+每日推荐页的 `tryScroll()` 在 `if (!list) return` 之后直接调用该方法 → **静默失败**，
+而它**调用后立即把 `pendingScrollIndex = null`**，所以连重试机会都没有。
+
+> 排行榜页之所以"看起来能用"，是因为它的 `safeScrollToIndex` 里有
+> `if (typeof list.scrollToIndex !== 'function') return false` —— 同样是失效的，
+> 只是返回 false 后会重试到超时，表现可能因页面数据加载时机不同而不一致。
+
+### 40.3 修复
+
+**`src/renderer/components/material/OnlineList/index.vue`** 新增 `expose`：
+
+```js
+expose: ['scrollToTop', 'scrollToIndex', 'getScrollTop', 'handleMenuClick'],
+```
+
+**修复后实测**：
+| 检查 | 修复前 | 修复后 |
+|---|---|---|
+| `exposedKeys` | `[]`（空） | 有内容 |
+| `hasScrollToIndex` | ❌ false | ✅ true |
+| `hasGetScrollTop` | ❌ false | ✅ true |
+| 调 `getScrollTop()` 返回值 | 不可调用 | **752** |
+| 跳转后列表 `scrollTop` | **0**（未滚动） | **752**（已滚动） |
+| 视口显示行 | 第 1 行起 | **第 21–31 行**（含目标第 28 行）✅ |
+
+### 40.4 验证结果
+| 检查 | 结果 |
+|---|---|
+| 端到端定位（跳转→滚动） | ✅ `scrollTop: 752`，目标行在视口内 |
+| `pnpm test` | ✅ **240 断言全通过** |
+| `pnpm build` | ✅ 4 目标全 success |
+| lint | ✅ 0 错误 |
+
+### 40.5 影响范围（附带修复）
+`expose` 是**组件级**修复，因此同时修好了**所有使用 `material-online-list` 的定位场景**：
+- 每日推荐页
+- 排行榜页（此前 `safeScrollToIndex` 同样拿不到 `scrollToIndex`）
+- 在线歌单详情页
+
+### 40.6 经验教训
+1. **`setup()` 的 `return` ≠ `expose`**：模版能用不代表外部 `ref` 能用。
+   组件要给父组件调用方法，必须 `defineExpose`（组合式）或 `expose: [...]`（选项式）。
+2. **静默失败最难查**：`if (!list) return` 只判了对象存在，没判方法存在；
+   调用后立即清空待办标记，导致无重试、无日志、无报错。
+   **凡调用可选方法前，应校验 `typeof fn === 'function'`**。
+3. 排查顺序有效：先验证「参数对不对」→ 再验证「动作有没有发生」→ 最后查「为什么没发生」。
+---
+
+## 41. 修复：重启后右击封面无法定位（来源 id 未持久化，2026-11-10 第 31 轮）
+
+### 41.1 用户反馈
+上一轮（§40）修完 `expose` 后，用户仍反馈右击封面「定位」没反应 —— 表现为**什么都没发生**。
+
+### 41.2 排查过程（这次直接打根因，不再猜）
+
+**第 1 步：真实双击行播放，读取运行时真值**
+在每日推荐页用真实双击（`OnlineList/usePlay.ts` 的 `doubleClickPlay` 需要 400ms 内两次点击）触发播放后：
+
+```json
+{ "listId": "temp", "playIndex": 2, "name": "绝对占有，相对自由", "metaId": "dailyrec_wy" }
+```
+
+**第 2 步：同一首歌、重启后再读 —— 来源变空了**
+```
+{"listId":"temp","playIndex":9,"name":"勾指起誓","tempListMetaId":"", "target": null}
+```
+`target: null` ⇒ `resolveMusicLocation` 直接返回 null ⇒ `handleToMusicLocation` 里
+`if (!target) return` **静默退出**，没有任何提示。这就是"点了没反应"。
+
+**第 3 步：确认根因 —— 来源 id 只存在内存普通对象里**
+```ts
+// src/renderer/store/list/state.ts（修复前）
+export const tempListMeta = { id: '' }     // 纯内存普通对象，进程退出即归零
+```
+而唯一的写入点是 `setTempList()`：
+```ts
+tempListMeta.id = id   // 只写内存，从不落盘
+```
+`temp` 列表在数据库里**没有 `my_list` 表记录**（见 `dbService/modules/list/statements.ts`
+的 SQL，只操作 `my_list` / `my_list_music_info` / `my_list_music_info_order`），
+所以 DB 那条路根本走不通。`tempList.meta` 字段虽然存在，但 `updateList()` 只在
+`list_update` 事件里被调用，而 `setTempList` 从不触发该事件 ⇒ 字段永远是 `{}`。
+
+⇒ **结论：`tempListMeta.id` 是唯一来源，但它没有持久化。重启后必然丢失。**
+
+### 41.3 修复
+
+**新增** `src/common/utils/tempListMeta.ts` —— 只放存储格式的纯逻辑，便于单测：
+- `TEMP_LIST_META_KEY = 'temp_list_meta'`
+- `serializeTempListMeta(id)` → `'{"id":"..."}'`
+- `parseTempListMeta(raw)` → 任何异常输入（空/非 JSON/数组/`null`/`id` 非字符串）一律返回 `''`
+
+**`src/renderer/store/list/state.ts`**：
+- `tempListMeta` 改为 `reactive({ id: readStoredId() })`，初始值从 localStorage 还原
+- 新增 `setTempListMetaId(id)`：写内存 + 写 localStorage（写盘失败时静默降级，不阻断播放）
+
+**`src/renderer/store/list/action.ts`**：
+- `setTempList()` 内改调 `setTempListMetaId(id)`，`tempListMeta` 导入随之移除
+
+### 41.4 运行时实测（真实 CDP，非单测）
+
+| 检查 | 结果 |
+|---|---|
+| `setTempListMetaId('dailyrec_wy')` 后内存 | ✅ `{ id: "dailyrec_wy" }` |
+| 同调用后 localStorage | ✅ `{"id":"dailyrec_wy"}` |
+| `setTempList('board__wy__19723756', [])` 后 localStorage | ✅ `{"id":"board__wy__19723756"}`（两条路径都落盘） |
+| 写入 `not-json` 后 `parse` | ✅ 返回 `''`，不抛错 |
+| **页面 reload（等价重启渲染进程）后内存** | ✅ `{ id: "dailyrec_wy" }` —— 从 localStorage 还原成功 |
+| 定位全链路（双击第 10 行 → 滚到顶 → 右击封面） | ✅ `hash: #/wy/dailyRec?scrollIndex=9&locateSeq=3`，`scrollTop: 0 → 183`，目标行「勾指起誓」进入视口 |
+
+> 注：reload 后 `playMusicInfo.listId` 为 `null`（播放状态本身由别处恢复），
+> 因此"重启 → 定位"的端到端还需一次真实重启点击播放验证，见 41.7。
+
+### 41.5 修改文件
+| 文件 | 改动 |
+|---|---|
+| `src/common/utils/tempListMeta.ts` | **新增**：存储键 + 序列化/反序列化纯函数 |
+| `src/renderer/store/list/state.ts` | `tempListMeta` 改 reactive + 从 localStorage 初始化；新增 `setTempListMetaId` |
+| `src/renderer/store/list/action.ts` | `setTempList` 改调 `setTempListMetaId`；移除多余导入 |
+| `tests/tempListMeta.test.mjs` | **新增**：25 条断言 |
+| `tests/run.mjs` | 注册新测试 |
+
+### 41.6 验证结果
+| 检查 | 结果 |
+|---|---|
+| `pnpm test` | ✅ exit 0，**265 断言全通过**（新增 25） |
+| 改动文件 lint | ✅ 0 错误（修掉一处 `space-before-function-paren`） |
+| `pnpm build` renderer 目标 | ✅ `compiled successfully in 358494 ms` |
+| `dist/renderer.js` 含新代码 | ✅ 命中 `temp_list_meta` |
+
+### 41.7 未验证 / 遗留
+- ⚠️ **真实进程重启**（关掉 app 再开）后的「恢复上次播放 → 右击定位」未跑完整流程，
+  只验证到「reload 后来源能还原」这一层。
+- 🐛 **发现一个构建性能坑**：`pnpm build` 的 4 个目标**并行**跑 webpack，
+  同时本机还开着 `pnpm run dev`（dev server 占 9080/9081），
+  renderer 目标会长时间停在 `92% sealing asset processing TerserPlugin`，
+  日志近 20 分钟不更新、`dist/renderer.js` 不生成 —— **看着像死锁，其实只是极慢**。
+  单独跑 renderer（`node node_modules/webpack/bin/webpack.js --config build-config/renderer/webpack.config.prod.js --progress`）
+  358 秒能出结果。**建议：构建前先停 dev server**。
+
+### 41.8 经验教训
+1. **`if (!target) return` 这类早退是排障黑洞**：没有日志、没有 UI 反馈，
+   用户只能看到"点了没反应"。凡早退分支，至少留一条 `console.warn` 或状态提示。
+2. **"能播放"不等于"能定位"**：播放走的是 `temp` 列表（内存 + DB 都有），
+   但**来源元信息**只存内存。任何"只在运行时存在"的状态都要问一句：重启后还在吗？
+3. **并行构建 + 并行 dev server 会互相拖死**：日志长时间静止时，先看 CPU 增长量，
+   别急着判死锁（本次 25s 内 CPU 只涨 0.47s，但单独跑仍能完成）。
+---
+
+## 42. 修复：每日推荐自动存歌单重复创建同名歌单（2026-11-10 第 32 轮）
+
+### 42.1 用户反馈（带截图）
+左侧「我的列表」里出现 **5 个同名 `11_10_daily`**，一路排下来。
+
+### 42.2 根因（两个叠加，缺一不可）
+
+**根因 A：并发无互斥 → 同时走「新建」分支**
+
+`DailyRec/index.vue` 的 `loadSongs()` 里是**不 await** 的调用：
+```ts
+void autoSaveDailyPlaylist(result.list.map(...), { silent: true }).catch(...)
+```
+而 `loadSongs()` 由多条路径触发（首次进入 / 登录状态变化 / 手动刷新 / 路由重新激活）。
+而 `autoSaveDailyPlaylist` 的结构是：
+```ts
+const existing = lists.find(l => l.name === name)   // 同步查重
+if (existing) { ...覆盖... }                        // 异步
+else { ...新建... }                                 // 异步
+```
+两个调用**同时**执行到 `lists.find` 时，谁都还没创建，于是**都判定「不存在」→ 各建一个**。
+
+实测佐证：5 个歌单的 `locationUpdateTime` 全是 `null` ——
+若走过覆盖分支该字段会被 `Date.now()` 更新，所以它们**全部来自新建分支**。
+
+**根因 B：去重只认第一个匹配 → 脏数据无法自愈**
+
+原逻辑 `lists.find(l => l.name === name)` 只取**第一个**同名项。
+一旦库里已经存在多个同名歌单（历史 bug 造成），后续每次自动存档都只更新第一个，
+**剩下的永远是孤儿**，用户永远看到一长串同名歌单。
+即使修好了并发，这 5 个存量也不会自己消失。
+
+### 42.3 修复（三层防护）
+
+**① 纯逻辑层**（`src/common/utils/dailyRecAutoSave.ts`）新增两个可测函数：
+- `pickDailyRecListToKeep(lists, name, preferId?)` —— 选出要保留的那个
+  （优先 `preferId`，否则取数组第一个；DB 顺序天然是创建顺序）
+- `pickDuplicateNameListsToRemove(lists, name, keepId)` —— 选出要删掉的同名重复项
+  （**空名字直接返回空数组**，防止误删全部）
+
+**② 互斥层**（`useAutoSave.ts`）：模块级 `inFlight` Promise 锁
+```ts
+if (inFlight) return inFlight        // 复用进行中的那次
+inFlight = runAutoSave(...).finally(() => { inFlight = null })
+```
+后到的调用等待前一次结束，再基于最新列表判断 → 自然走「已存在 → 更新」。
+
+**③ 快照层**（`useAutoSave.ts`）：判断前先 `await getUserLists()` 拉一次真实列表。
+`userLists` 在启动早期可能尚未填充，此时查重会「查不到 → 直接新建」——
+这正是重装/重启后第一批重复歌单的来源。拉取失败时降级用内存快照并打 warn。
+
+**④ 自愈**：走「已存在」分支时，一并删除多余同名项，并把结果写进返回值 `removed`。
+
+### 42.4 运行时实测（真实 CDP）
+
+修复前现场：`total 7`，`sameName 5`。
+
+| 操作 | 结果 |
+|---|---|
+| 4 次**并发**调用 | 全部返回 `action: 'updated'`，`removed` 列出 4 个重复 id |
+| 并发后状态 | `total 3`，`sameName **1**` ✅ |
+| 再串行调 2 次 | `action: 'updated'`，`removed: []`，`sameName` 仍 **1** ✅ |
+| 最终列表 | `11_10_daily` ×1 + 两个网易云歌单，共 3 个 ✅ |
+
+### 42.5 修改文件
+| 文件 | 改动 |
+|---|---|
+| `src/common/utils/dailyRecAutoSave.ts` | 新增 `pickDailyRecListToKeep` / `pickDuplicateNameListsToRemove` |
+| `src/renderer/views/wy/DailyRec/useAutoSave.ts` | 加 `inFlight` 互斥锁；判断前 `await getUserLists()`；已存在分支清理重复项 |
+| `src/renderer/views/wy/DailyRec/index.vue` | **修回** `let scrollTimer: number \| null = null`（类型标注被误删导致 TS 报错） |
+| `tests/dailyRecAutoSave.test.mjs` | 新增 19 条断言（共 44） |
+| `tests/verifyNoDupPlaylist.cjs` | **新增**：并发/串行重复创建验证脚本 |
+
+### 42.6 验证结果
+| 检查 | 结果 |
+|---|---|
+| `pnpm test` | ✅ exit 0，**278 断言全通过** |
+| 改动文件 lint | ✅ 0 错误 |
+| dev 编译覆盖层 | ✅ 无 `Compiled with problems`、无 `ERROR in` |
+| 运行时并发实测 | ✅ 5 → 1，不再新增 |
+
+### 42.7 顺带发现的类型问题
+`index.vue` 里 `let scrollTimer: number | null = null` 在之前某轮改动中丢了类型标注，
+变成 `let scrollTimer = null` → TS 报 `TS7034 / TS7005`（implicit any）。
+prod 构建的 `ts-loader` 会拦下这类错误，而 dev 的 overlay 也会显示。
+**已修回**。教训：改动 Vue 文件时不要顺手删掉 `let x: T | null` 里的类型。
+
+### 42.8 经验教训
+1. **`void someAsync()` + 同步查重 = 并发 bug**。
+   任何「先查后写」的逻辑，只要可能被并发触发，就必须有互斥或幂等键。
+2. **去重必须处理「已经脏了」的存量**。
+   只修写入路径而不清理历史数据，用户看到的还是老样子。
+   `find()` 取第一个的写法会把脏数据永久固化。
+3. **`locationUpdateTime: null` 是很好的判据**：它能区分「走过覆盖」还是「只走新建」。
