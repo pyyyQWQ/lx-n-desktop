@@ -78,3 +78,6 @@ pnpm-workspace.yaml
 start-dev.bat
 check-userdata.bat
 启动开发版.bat
+
+# dsh-pilot 截图临时目录（工具生成，勿提交）
+.dsh-pilot/
