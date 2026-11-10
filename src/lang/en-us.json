@@ -827,5 +827,10 @@
   "setting__sync_webdav_download_failed": "Download failed: {message}",
   "setting__sync_webdav_sync_failed": "Sync failed: {message}",
   "setting__sync_webdav_cancelled": "Cancelled",
-  "download__quality_loading": "Loading quality info…"
+  "download__quality_loading": "Loading quality info…",
+  "list__like": "Like",
+  "list__unlike": "Unlike",
+  "setting__list_auto_save_daily_rec": "Auto-save daily recommendations as a playlist",
+  "setting__list_auto_save_daily_rec_tip": "On the first visit to Daily Recommendations each day, the recommended songs are saved as a playlist named \"MM_DD_daily\" (e.g. 11_10_daily). Only the latest 3 are kept; older ones are removed automatically.",
+  "setting__list_auto_save_daily_rec_confirm": "Enabling this creates daily recommendation playlists in My Lists automatically, keeping only the latest 3 (older ones are removed). Continue?"
 }

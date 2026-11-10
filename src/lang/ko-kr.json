@@ -827,5 +827,10 @@
   "setting__sync_webdav_download_failed": "다운로드 실패: {message}",
   "setting__sync_webdav_sync_failed": "동기화 실패: {message}",
   "setting__sync_webdav_cancelled": "작업이 취소되었습니다",
-  "download__quality_loading": "음질 정보를 불러오는 중…"
+  "download__quality_loading": "음질 정보를 불러오는 중…",
+  "list__like": "좋아요",
+  "list__unlike": "좋아요 취소",
+  "setting__list_auto_save_daily_rec": "매일 추천을 재생목록으로 자동 저장",
+  "setting__list_auto_save_daily_rec_tip": "매일 처음 매일 추천에 들어갈 때 추천 곡을 \"MM_DD_daily\" 이름의 재생목록으로 저장합니다(예: 11_10_daily). 최근 3개만 유지하며 오래된 것은 자동 삭제됩니다.",
+  "setting__list_auto_save_daily_rec_confirm": "켜면 내 목록에 매일 추천 재생목록이 자동 생성되며 최근 3개만 유지됩니다(오래된 것은 삭제). 계속하시겠습니까?"
 }

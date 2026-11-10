@@ -827,5 +827,10 @@
   "setting__sync_webdav_download_failed": "下载失败：{message}",
   "setting__sync_webdav_sync_failed": "同步失败：{message}",
   "setting__sync_webdav_cancelled": "操作已取消",
-  "download__quality_loading": "正在获取音质信息…"
+  "download__quality_loading": "正在获取音质信息…",
+  "list__like": "喜欢",
+  "list__unlike": "取消喜欢",
+  "setting__list_auto_save_daily_rec": "自动保存每日推荐为歌单",
+  "setting__list_auto_save_daily_rec_tip": "每天首次进入「每日推荐」时，自动把当天的推荐歌曲保存为一个名为「月_日_daily」的歌单（如 11_10_daily）。只保留最近 3 个，超出时自动删除最旧的。",
+  "setting__list_auto_save_daily_rec_confirm": "开启后会自动在你的「我的列表」中创建每日推荐歌单，仅保留最近 3 个（超出自动删除最旧的）。确定要开启吗？"
 }

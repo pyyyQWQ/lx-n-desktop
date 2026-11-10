@@ -15,10 +15,10 @@
             <th class="num" style="width: 5%;">#</th>
             <th class="nobreak">{{ $t('music_name') }}</th>
             <th class="nobreak" style="width: 25%;">{{ $t('music_singer') }}</th>
-            <th class="nobreak" style="width: 28%;">{{ $t('music_album') }}</th>
-            <th class="nobreak" style="width: 10%;">{{ $t('music_time') }}</th>
-          </tr>
-        </thead>
+            <th class="nobreak" style="width: 25%;">{{ $t('music_album') }}</th>
+            <th class="nobreak" style="width: 9%;">{{ $t('music_time') }}</th>
+            </tr>
+          </thead>
       </table>
     </div>
     <div v-show="list.length" ref="dom_listContent" :class="$style.content">
@@ -48,8 +48,10 @@
           <div class="list-item-cell" style="flex: 0 0 22%;"><span class="select" :aria-label="item.singer">{{ item.singer }}</span></div>
           <div class="list-item-cell" style="flex: 0 0 22%;"><span class="select" :aria-label="item.meta.albumName">{{ item.meta.albumName }}</span></div>
           <div class="list-item-cell" style="flex: 0 0 9%;"><span class="no-select">{{ item.interval || '--/--' }}</span></div>
-          <div class="list-item-cell" style="flex: 0 0 16%; padding-left: 0; padding-right: 0;">
-            <material-list-buttons :index="index" :download-btn="assertApiSupport(item.source) && item.source != 'local'" @btn-click="handleListBtnClick" />
+          <div class="list-item-cell" :class="$style.actionCell" style="flex: 0 0 16%; padding-left: 0; padding-right: 0;">
+            <!-- 心形占据原「下载」按钮的位置；下载入口保留在右键菜单中 -->
+            <material-wy-like-btn :music-info="item" />
+            <material-list-buttons :index="index" :download-btn="false" @btn-click="handleListBtnClick" />
           </div>
         </div>
       </base-virtualized-list>
@@ -78,8 +80,8 @@
             <span v-if="isShowSource" class="no-select label-source">{{ item.source }}</span>
           </div>
           <div class="list-item-cell" style="flex: 0 0 25%;"><span class="select" :aria-label="item.singer">{{ item.singer }}</span></div>
-          <div class="list-item-cell" style="flex: 0 0 28%;"><span class="select" :aria-label="item.meta.albumName">{{ item.meta.albumName }}</span></div>
-          <div class="list-item-cell" style="flex: 0 0 10%;"><span class="no-select">{{ item.interval || '--/--' }}</span></div>
+          <div class="list-item-cell" style="flex: 0 0 25%;"><span class="select" :aria-label="item.meta.albumName">{{ item.meta.albumName }}</span></div>
+          <div class="list-item-cell" style="flex: 0 0 9%;"><span class="no-select">{{ item.interval || '--/--' }}</span></div>
         </div>
       </base-virtualized-list>
     </div>
@@ -361,6 +363,16 @@ export default {
 
 
 <style lang="less" module>
+
+// 操作列：心形（可选）+ 耳机/加号/下载按钮并排显示。
+// 注意：.list-item-cell 带 overflow:hidden（.mixin-ellipsis-1），
+// 若把心形放进独立的窄列（如 4%）会被裁掉右侧；放进本列与按钮同排即可避免裁剪，
+// 且与其它按钮天然处于同一基线。
+.actionCell {
+  display: flex;
+  align-items: center;
+}
+
 @import '@renderer/assets/styles/layout.less';
 
 .list {

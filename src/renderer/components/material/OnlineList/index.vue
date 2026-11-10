@@ -16,7 +16,7 @@
             <tr v-else>
               <th class="num" style="width: 5%;">#</th>
               <th class="nobreak">{{ $t('music_name') }}</th>
-              <th class="nobreak" style="width: 24%;">{{ $t('music_singer') }}</th>
+              <th class="nobreak" style="width: 25%;">{{ $t('music_singer') }}</th>
               <th class="nobreak" style="width: 27%;">{{ $t('music_album') }}</th>
               <th class="nobreak" style="width: 10%;">{{ $t('music_time') }}</th>
             </tr>
@@ -49,8 +49,10 @@
                 <div class="list-item-cell" style="flex: 0 0 22%;"><span class="select" :aria-label="item.singer">{{ item.singer }}</span></div>
                 <div class="list-item-cell" style="flex: 0 0 22%;"><span class="select" :aria-label="item.meta.albumName">{{ item.meta.albumName }}</span></div>
                 <div class="list-item-cell" style="flex: 0 0 9%;"><span class="no-select">{{ item.interval || '--/--' }}</span></div>
-                <div class="list-item-cell" style="flex: 0 0 16%; padding-left: 0; padding-right: 0;">
-                  <material-list-buttons :index="index" :remove-btn="false" :download-btn="assertApiSupport(item.source)" :play-btn="checkApiSource ? assertApiSupport(item.source) : true" @btn-click="handleListBtnClick" />
+                <div class="list-item-cell" :class="$style.actionCell" style="flex: 0 0 16%; padding-left: 0; padding-right: 0;">
+                  <!-- 心形占据原「下载」按钮的位置；下载入口保留在右键菜单中 -->
+                  <material-wy-like-btn :music-info="item" />
+                  <material-list-buttons :index="index" :remove-btn="false" :download-btn="false" :play-btn="checkApiSource ? assertApiSupport(item.source) : true" @btn-click="handleListBtnClick" />
                 </div>
               </div>
             </template>
@@ -82,8 +84,8 @@
                   <span v-if="sourceTag" class="no-select badge badge-theme-tertiary">{{ item.source }}</span>
                 </div>
                 <div class="list-item-cell" style="flex: 0 0 24%;"><span class="select" :aria-label="item.singer">{{ item.singer }}</span></div>
-                <div class="list-item-cell" style="flex: 0 0 27%;"><span class="select" :aria-label="item.meta.albumName">{{ item.meta.albumName }}</span></div>
-                <div class="list-item-cell" style="flex: 0 0 10%;"><span class="no-select">{{ item.interval || '--/--' }}</span></div>
+                <div class="list-item-cell" style="flex: 0 0 24%;"><span class="select" :aria-label="item.meta.albumName">{{ item.meta.albumName }}</span></div>
+                <div class="list-item-cell" style="flex: 0 0 9%;"><span class="no-select">{{ item.interval || '--/--' }}</span></div>
               </div>
             </template>
             <template #footer>
@@ -281,6 +283,12 @@ export default {
           break
       }
     }
+
+    // ===== 网易云「喜欢」心形按钮 =====
+    // 具体实现已抽取为 material/WyLikeBtn.vue（模板里直接引用 <material-wy-like-btn>），
+    // 这里只保留「是否为网易云音源」的判断用于控制该列是否渲染。
+    const isWySource = item => item?.source === 'wy'
+
     /** 当前滚动位置（用于校验定位是否真的生效）。 */
     const getScrollTop = () => {
       try { return listRef.value?.getScrollTop?.() ?? 0 } catch (_) { return 0 }
@@ -346,13 +354,35 @@ export default {
       actionButtonsVisible,
 
       isCurrentPlaying,
+
+      // 网易云喜欢列（仅 wy 源显示）
+      isWySource,
     }
   },
+  /**
+   * 对外暴露的方法。
+   *
+   * 必须 expose：本组件是 Options API + setup 返回，父组件通过 `ref` 拿到的是组件实例，
+   * **setup 的返回值默认不会暴露给外部 ref**（只有 template 能访问）。
+   * 之前缺少 expose 导致 `listRef.value.scrollToIndex` 恒为 undefined，
+   * 「定位当前播放」在每日推荐 / 排行榜等页面全部静默失效。
+   */
+  expose: ['scrollToTop', 'scrollToIndex', 'getScrollTop', 'handleMenuClick'],
 }
 </script>
 
 
 <style lang="less" module>
+
+// 操作列：心形（可选）+ 耳机/加号/下载按钮并排显示。
+// 注意：.list-item-cell 带 overflow:hidden（.mixin-ellipsis-1），
+// 若把心形放进独立的窄列（如 4%）会被裁掉右侧；放进本列与按钮同排即可避免裁剪，
+// 且与其它按钮天然处于同一基线。
+.actionCell {
+  display: flex;
+  align-items: center;
+}
+
 @import '@renderer/assets/styles/layout.less';
 // 序号列：作为播放图标的定位基准（缺失会导致图标跑到别处、序号位置空白）。
 // 注意用独立类名 numCell，避免与全局 .num / layout.less 中的同名类冲突被覆盖。
@@ -425,4 +455,5 @@ export default {
   }
 }
 
+// 网易云「喜欢」心形按钮（移植自移动改良版）
 </style>
