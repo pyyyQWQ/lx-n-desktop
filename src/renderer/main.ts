@@ -23,7 +23,8 @@ import type { I18n } from '@root/lang/i18n'
 
 import { initSetting } from './store/setting'
 import { initWyLoginStatus, initWyLoginVerify, initWyLoginExpiredListener } from './core/wyLogin'
-import { initWebdavSync } from './core/sync/webdavSync'
+import { initWebdavSync, syncLists } from './core/sync/webdavSync'
+import { initListAutoSync } from './core/sync/listAutoSync'
 // import { bubbleCursor } from './utils/cursor-effects/bubbleCursor'
 
 import './worker'
@@ -74,12 +75,14 @@ void getSetting().then(setting => {
   // 网易云登录状态启动恢复（阶段 B2.1）
   // 不阻塞其他音乐源启动；如无 Cookie 则置未配置状态，有 Cookie 则后台验证
   initWyLoginStatus()
-  initWyLoginVerify()
+  void initWyLoginVerify()
   // 注册网易云登录态失效监听（请求层 301 时复位状态并清持久化 Cookie）
   initWyLoginExpiredListener()
 
   // WebDAV 启动自动同步（仅在「启用 + 自动同步歌单」且已配置时，后台触发一次；不阻塞启动）
   initWebdavSync()
+  // 列表变更级自动同步：监听列表写操作，防抖 3s 后触发同步（与移动改良版语义一致）
+  initListAutoSync(async() => { await syncLists(false) })
 
   const app = createApp(App)
   app

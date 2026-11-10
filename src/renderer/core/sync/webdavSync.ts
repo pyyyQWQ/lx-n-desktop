@@ -39,6 +39,7 @@ import {
   isWebdavConfigured,
   describeWebdavError,
 } from '@renderer/utils/webdav'
+import { markSelfWrite } from './listAutoSync'
 
 // i18n 取值封装：键名在编译期无法逐一枚举（按需动态传入），
 // 因此在此收敛为宽松签名，避免把类型噪声扩散到每个调用点。
@@ -87,6 +88,9 @@ const uploadLists = async() => {
 }
 /** 把远端列表数据应用到本地（覆盖）。 */
 const applyRemoteLists = async(remoteData: any) => {
+  // 覆盖会触发 myListUpdate → 若不先标记「自身写入」，
+  // 列表变更自动同步会立刻把刚下载的数据又上传回去（无意义的往返，且可能与手机端打架）。
+  markSelfWrite()
   await overwriteListFull(remoteData as LX.List.ListActionDataOverwrite)
 }
 
