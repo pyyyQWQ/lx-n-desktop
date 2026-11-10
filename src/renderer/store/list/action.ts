@@ -1,7 +1,7 @@
 // import {  } from '@renderer/utils/ipc'
 
 import { appSetting } from '@renderer/store/setting'
-import { fetchingListStatus, listUpdateTimes, allMusicList, userLists, tempListMeta } from './state'
+import { fetchingListStatus, listUpdateTimes, allMusicList, userLists, setTempListMetaId } from './state'
 import {
   registerListAction,
   createUserList as createUserListAction,
@@ -77,7 +77,9 @@ export const createUserList = async({ name, id = `userlist_${Date.now()}`, list 
 
 
 export const setTempList = async(id: string, list: LX.Music.MusicInfoOnline[]) => {
-  tempListMeta.id = id
+  // 走 setTempListMetaId 而非直接赋值：把来源 id 落盘，
+  // 否则重启后「恢复上次播放」会因来源丢失而无法右击定位（详见 state.ts 注释）
+  setTempListMetaId(id)
   await overwriteListMusics({
     listId: LIST_IDS.TEMP,
     musicInfos: list,

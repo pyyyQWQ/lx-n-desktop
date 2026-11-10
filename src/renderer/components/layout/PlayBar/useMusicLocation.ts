@@ -23,10 +23,38 @@ export interface MusicLocationTarget {
 }
 
 /**
+ * 定位请求序号（模块级自增，每次定位 +1）。
+ *
+ * 用途：Vue Router 会**忽略完全相同的重复导航**（跳同一 path + 同一 query）。
+ * 若用户已停留在目标页、且目标行号与上次相同（例如反复定位同一首歌），
+ * 仅靠 `scrollIndex` 无法区分「新的定位请求」与「无变化」，
+ * 页面就收不到通知、不会滚动。
+ * 因此每次定位都附带一个递增的 `locateSeq`，保证 query 一定发生变化。
+ */
+let locateSeq = 0
+export const getNextLocateSeq = () => ++locateSeq
+
+/**
  * 计算「当前播放歌曲应回到哪一页 + 用哪个下标定位」。
  * 返回 null 表示不支持定位（下载列表、无效下标、无来源信息）。
  */
+/**
+ * 计算「当前播放歌曲应回到哪一页 + 用哪个下标定位」。
+ * 返回 null 表示不支持定位（下载列表、无效下标、无来源信息）。
+ *
+ * 返回值统一附带 `locateSeq`（每次调用自增）：保证即便目标页/行号都没变，
+ * 产生的 query 也与上一次不同，从而不会被 Vue Router 当作重复导航忽略。
+ */
 export const resolveMusicLocation = (playListId: string | null, playIndex: number): MusicLocationTarget | null => {
+  const target = resolveMusicLocationInner(playListId, playIndex)
+  if (!target) return null
+  return {
+    ...target,
+    query: { ...target.query, locateSeq: getNextLocateSeq() },
+  }
+}
+
+const resolveMusicLocationInner = (playListId: string | null, playIndex: number): MusicLocationTarget | null => {
   if (playIndex < 0) return null
   // 下载列表：按现行行为不定位
   if (playListId === LIST_IDS.DOWNLOAD) return null
