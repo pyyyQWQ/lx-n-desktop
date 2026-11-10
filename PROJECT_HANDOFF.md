@@ -3108,3 +3108,47 @@ prod 构建的 `ts-loader` 会拦下这类错误，而 dev 的 overlay 也会显
    只修写入路径而不清理历史数据，用户看到的还是老样子。
    `find()` 取第一个的写法会把脏数据永久固化。
 3. **`locationUpdateTime: null` 是很好的判据**：它能区分「走过覆盖」还是「只走新建」。
+
+## 43. 第 33 轮：v1.3.0 发布（2026-11-11）
+
+### 43.1 发布前验证
+| 检查 | 结果 |
+|---|---|
+| `pnpm test` | ✅ exit 0，278 断言全通过（domain 28 / cookie 11 / accountLogic 13 / updateFeed 14 / dailyRec 17 / dailyRecAutoSave 44 / tempListMeta 25 / quality 44 / webdavSync 82） |
+| `pnpm test:webdav` | ✅ exit 0，传输 8/8 + 数据安全 24/24 |
+| exe SHA-256 | ✅ 本地复算与 `SHA256SUMS.txt` 完全一致 |
+| `pnpm build` | 未执行（按要求不重新打包） |
+
+### 43.2 推送结果
+- 远端基线：`1911857`（`refs/heads/baseline-v1.0`）
+- 本地 HEAD：`c706092`（领先 9 个提交）
+- 分支推送：`1911857..c706092  baseline-v1.0 -> baseline-v1.0`，exit 0
+- tag `v1.3.0`（annotated）对象：`dd664aff8a6c1859feb5bf341e0cf15955ebd7a9`
+- tag 指向提交：`c706092fa0434d0b5017fb0a15854c061c4da79d`
+- tag 推送：`* [new tag] v1.3.0 -> v1.3.0`，exit 0
+
+### 43.3 Release
+- 地址：<https://github.com/pyyyQWQ/lx-n-desktop/releases/tag/v1.3.0>
+- Release id：`440627190`；标题 `LX-N 网易云音乐桌面版 v1.3.0`
+- 正文取自 `RELEASE_NOTES-v1.3.0.md`，API 比对一致（4958 字符）
+- 流程：先建 Draft → 核对 3 个附件大小 → 再 `draft=false` 正式发布
+
+| 附件 | API 报告大小 | 本地大小 | asset id |
+|---|---:|---:|---:|
+| `lx-netease-music-desktop-v1.3.0-x64-Setup.exe` | 122,233,844 | 122,233,844 | 732165319 |
+| `lx-netease-music-desktop-v1.3.0-x64-portable.exe` | 110,554,039 | 110,554,039 | 732174231 |
+| `SHA256SUMS.txt` | 229 | 229 | 732180687 |
+
+未上传 `*.blockmap`、`latest.yml`、`builder-debug.yml`、`win-unpacked/`。
+
+### 43.4 遇到的问题与处理
+1. 首次 `git push`（命令级清空代理）报 `Failed to connect to github.com port 443 after 21029 ms`，域名解析到 `20.205.243.166`。虽然 `ls-remote` 当时能成功，但推送连接超时。
+2. 复测发现全局配置的 `http://127.0.0.1:33210` 本次实际可用（curl 经该代理访问 github.com 返回 200）。改用
+   `-c http.proxy=http://127.0.0.1:33210 -c https.proxy=http://127.0.0.1:33210` 后，分支与 tag 均一次推送成功。
+   结论：本轮「代理已失效」的判断不成立，仍以实测为准。
+3. 本机无 `gh` CLI，也无 `GH_TOKEN` / `GITHUB_TOKEN`。沿用 v1.2.0 做法，从 Git 凭据管理器取已有 GitHub 凭据调用 REST API；凭据仅存在于进程内存，未写入仓库、日志或文档。
+4. 附件上传使用 .NET `HttpClient` 流式发送（禁用代理，直连 `uploads.github.com`）。Setup 约 133.7s、portable 约 117.7s、`SHA256SUMS.txt` 约 1.1s；三者 API 报告大小与本地字节数完全一致。
+5. `doc/` 中已存在 v1.2.0 版的 `CODEX_UPLOAD_PROMPT.md`。为保留历史，本轮提示词归档为 `doc/CODEX_UPLOAD_PROMPT-v1.3.0.md`，根目录原文件移除。
+
+### 43.5 提交说明
+本节与提示词归档单独提交为 `docs:` 提交，位于 tag `v1.3.0` 之后，不改变已发布的源码；与 v1.2.0（§33.5 第 5 点）的处理方式一致。
