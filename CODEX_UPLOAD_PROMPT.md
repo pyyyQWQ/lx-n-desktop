@@ -6,7 +6,7 @@
 
 ## 0. 一句话目标
 
-把本地 **7 个已完成的提交**推送到 `pyyyQWQ/lx-n-desktop`，打 tag `v1.3.0`，
+把本地**全部未推送的提交**推送到 `pyyyQWQ/lx-n-desktop`，打 tag `v1.3.0`，
 创建 GitHub Release，上传**已经打好的两个安装包**。
 
 **提交已经做完，打包也已经做完。你不需要改任何代码，也不需要重新构建。**
@@ -65,12 +65,18 @@ SHA-256（与 `SHA256SUMS.txt` 一致，已自校验）：
 ## 3. 当前 Git 状态
 
 - 分支：`baseline-v1.0`
-- 本地 HEAD：`2efb10d`（`docs: 交接文档记录第 24–32 轮`）
-- 远端 `baseline-v1.0` 分支头：`1911857` —— **本地领先 7 个提交，全部未推送**
+- 远端 `baseline-v1.0` 分支头：**`1911857`**（这是唯一固定的参照点）
+- 本地领先远端 **9 个提交**，全部未推送
 - 本地 tag：`v1.0.0` / `v1.1.0` / `v1.2.0`（尚无 `v1.3.0`）
 - **工作区完全干净**（`git status --porcelain` 输出为空）
 
-### 待推送的 7 个提交（按时间顺序，最早的在上）
+> ⚠️ 本地 HEAD 的具体 hash 请**用下面的命令现查**，不要依赖本文档里写死的值：
+> ```powershell
+> git -C 'C:\Users\PY\Desktop\LX-N-Desktop-NEW' rev-parse --short HEAD
+> ```
+> 下面提交表里的 hash 仅用于对照内容，若与实际不一致，以 `git log` 的实际输出为准。
+
+### 待推送的 9 个提交（按时间顺序，最早的在上）
 
 | 提交 | 说明 |
 |---|---|
@@ -81,15 +87,17 @@ SHA-256（与 `SHA256SUMS.txt` 一致，已自校验）：
 | `d07e6e4` | `test: 补充定位/去重/持久化的运行时验证脚本` |
 | `1d1d01d` | `chore: 版本号提升至 1.3.0，补充发布说明` |
 | `2efb10d` | `docs: 交接文档记录第 24–32 轮` |
+| `ecaac1b` | `docs: 补充 v1.3.0 上传发布提示词` |
+| `<HEAD>` | `docs: 更正上传提示词中的提交数` |
 
-> 这 7 个提交已按功能拆分完成，**不要 squash、不要 rebase、不要改写历史**，原样推送即可。
+> 这 9 个提交已按功能拆分完成，**不要 squash、不要 rebase、不要改写历史**，原样推送即可。
 
 ---
 
 ## 4. 推送步骤
 
 ```powershell
-# 1) 确认工作区干净、领先 7 个提交
+# 1) 确认工作区干净、领先 9 个提交
 git -C 'C:\Users\PY\Desktop\LX-N-Desktop-NEW' status --porcelain
 git -C 'C:\Users\PY\Desktop\LX-N-Desktop-NEW' rev-list --count origin/baseline-v1.0..HEAD
 
@@ -101,7 +109,7 @@ git -C 'C:\Users\PY\Desktop\LX-N-Desktop-NEW' tag -a v1.3.0 -m "LX-N 网易云�
 git -C 'C:\Users\PY\Desktop\LX-N-Desktop-NEW' -c http.proxy= -c https.proxy= push origin v1.3.0
 ```
 
-预期结果：`1911857..2efb10d  baseline-v1.0 -> baseline-v1.0`，tag 推送成功。
+预期结果形如：`1911857..<本地HEAD>  baseline-v1.0 -> baseline-v1.0`，tag 推送成功。
 
 ---
 
@@ -187,7 +195,7 @@ dailyRecAutoSave 44 / tempListMeta 25 / quality 44 / webdavSync 82
 2. **旧项目只读**：`C:\Users\PY\Desktop\LX-n-desktop\lx-netease-music-desktop` 绝对不要修改
 3. 文档、日志、代码、commit message 中**不得出现真实 Cookie / 密码 / Token / API Key**
 4. **不要重新打包，不要跑 `pnpm build`**（会清空 `build/`，虽然项目外有备份）
-5. **不要 squash / rebase** 这 7 个提交，按原样推送
+5. **不要 squash / rebase** 这些提交，按原样推送
 6. 未实际执行的测试**不得声称通过**
 7. 不要往仓库里提交任何产物（`build/`、`dist/`、`*.exe` 均已被 `.gitignore` 忽略）
 
@@ -197,7 +205,7 @@ dailyRecAutoSave 44 / tempListMeta 25 / quality 44 / webdavSync 82
 
 请在 `PROJECT_HANDOFF.md` 末尾追加一节「**§43 第 33 轮：v1.3.0 发布**」，记录：
 
-- 实际的推送结果（`1911857..2efb10d  baseline-v1.0 -> baseline-v1.0` 及 exit code）
+- 实际的推送结果（`1911857..<本地HEAD>  baseline-v1.0 -> baseline-v1.0` 及 exit code）
 - tag `v1.3.0` 的对象 hash 与指向的提交
 - Release 地址
 - 上传了哪些附件、各自 API 报告的大小
