@@ -113,6 +113,8 @@ const defaultSetting: LX.AppSetting = {
   'list.isSaveScrollLocation': true,
   'list.addMusicLocationType': 'top',
   'list.actionButtonsVisible': false,
+  // 每日推荐自动存歌单（保留 3 天）。默认关闭：自动创建歌单属写操作，需用户显式开启。
+  'list.isAutoSaveDailyRec': false,
 
   'download.enable': false,
   'download.isSavePathGroupByListName': false,
@@ -152,6 +154,8 @@ const defaultSetting: LX.AppSetting = {
 
   // WebDAV 数据同步（默认关闭，由用户显式配置后启用）
   'sync.webdav.enable': false,
+  // 启动后自动同步歌单；同时也是「列表变更自动同步」的开关（与移动改良版一致，
+  // 手机版没有独立的变更同步开关，debouncedSync 用的就是这一项）
   'sync.webdav.syncLists': false,
   'sync.webdav.url': '',
   'sync.webdav.username': '',

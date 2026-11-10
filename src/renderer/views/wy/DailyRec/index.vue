@@ -71,6 +71,7 @@ import { setWyDailyRecSongs, setWyDailyRecPlaylists } from '@renderer/store/user
 import { setTempList } from '@renderer/store/list/action'
 import { playList } from '@renderer/core/player/action'
 import { LIST_IDS } from '@common/constants'
+import { autoSaveDailyPlaylist } from './useAutoSave'
 
 const DAILY_REC_LIST_ID = 'dailyrec_wy'
 
@@ -103,6 +104,12 @@ export default {
       const result = await wyDailyRecApi.getList(cookie)
       // 保存原始结构：列表组件与「添加到列表」弹窗依赖它取字段（songmid/types 等）
       setWyDailyRecSongs(result.list)
+      // 自动存歌单：仅在设置开启时执行；失败不影响页面展示。
+      // 注意：必须传 **转换后的 MusicInfo 新结构**（含 id/meta），
+      // 原始结构是旧字段（songmid/types），直接存进列表会因缺少 id/meta 而变成空歌单。
+      void autoSaveDailyPlaylist(result.list.map(item => toNewMusicInfo(item)), { silent: true }).catch((err: any) => {
+        console.error('[DailyRec] 自动存歌单失败:', err?.message ?? err)
+      })
     }
 
     const loadPlaylists = async() => {
@@ -141,8 +148,13 @@ export default {
      * 用轮询而非只监听列表长度变化：若数据已缓存在 store 中、长度没有变化，
      * watch 不会触发，就会漏掉定位。这里只要「实例 + 数据」都就绪就滚，
      * 成功后停止；最多约 3 秒，超时放弃，避免影响正常浏览。
+     *
+     * 注意 pendingScrollIndex 必须是响应式的：
+     * 用户**已经在本页**时右击封面定位，router.push 只改 query、组件不会重建，
+     * 若不通过 watch 监听 query 变化，页面就不会响应新的 scrollIndex（此前正是此问题）。
      */
-    let pendingScrollIndex: number | null = null
+    // 必须显式声明泛型：`ref(null)` 会被推断成 Ref<null>，后续赋值 number 会报 TS2322
+    const pendingScrollIndex = ref<number | null>(null)
     let scrollTimer: number | null = null
     let scrollTries = 0
 
@@ -154,53 +166,72 @@ export default {
     }
 
     const tryScroll = () => {
-      if (pendingScrollIndex == null) return
+      const target = pendingScrollIndex.value
+      if (target == null) return
       const total = displaySongs.value.length
       if (!total) return
-      const target = pendingScrollIndex
       if (target < 0 || target >= total) {
-        pendingScrollIndex = null
+        pendingScrollIndex.value = null
         stopScrollRetry()
         return
       }
       const list = listRef.value
       if (!list) return
+      // 方法可能不存在（组件未 expose 或尚未挂载），必须校验后再调用，否则静默失败
+      if (typeof list.scrollToIndex !== 'function') return
       try {
         // 非动画滚动，避免平滑滚动在元素销毁时抛 DOMException
         // 传 onScrollEnd 回调：让 VirtualizedList 走「直接设置 scrollTop」分支（否则 behavior:'instant' 可能不生效）
         list.scrollToIndex(target, -150, false, () => {})
-        pendingScrollIndex = null
+        pendingScrollIndex.value = null
         stopScrollRetry()
       } catch (err) {
         console.warn('[scroll] 定位失败（已忽略）:', err)
-        pendingScrollIndex = null
+        pendingScrollIndex.value = null
         stopScrollRetry()
       }
     }
 
     const startScrollRetry = () => {
-      if (pendingScrollIndex == null || scrollTimer != null) return
+      if (pendingScrollIndex.value == null || scrollTimer != null) return
       scrollTries = 0
       const tick = () => {
         scrollTries++
         tryScroll()
-        if (pendingScrollIndex == null || scrollTries > 30) stopScrollRetry()
+        if (pendingScrollIndex.value == null || scrollTries > 30) stopScrollRetry()
       }
       setTimeout(() => {
         tick()
-        if (pendingScrollIndex != null && scrollTimer == null) scrollTimer = window.setInterval(tick, 100)
+        if (pendingScrollIndex.value != null && scrollTimer == null) scrollTimer = window.setInterval(tick, 100)
       }, 60)
     }
 
-    // 读取路由参数
-    {
+    /** 从路由 query 解析 scrollIndex 并写入待定位标记。 */
+    const syncPendingScrollIndexFromRoute = () => {
       const raw = route.query.scrollIndex
       const num = raw == null || raw === '' ? NaN : Number(raw)
-      pendingScrollIndex = Number.isNaN(num) ? null : num
+      pendingScrollIndex.value = Number.isNaN(num) ? null : num
     }
+
+    // 首次进入时读取一次
+    syncPendingScrollIndexFromRoute()
 
     onMounted(startScrollRetry)
     watch(() => displaySongs.value.length, startScrollRetry)
+    // 关键：已经在本页面时右击定位，router.push 只改 query、组件不会重建，
+    // 必须监听 query 变化才会响应新的定位请求（此前正是缺了这一步）。
+    //
+    // 用 locateSeq 作为主信号：resolveMusicLocation 每次调用都会把它 +1，
+    // 因此「反复定位同一首」也能触发；scrollIndex 单独变化时也兜底处理。
+    watch(
+      () => [route.query.scrollIndex, route.query.locateSeq],
+      (cur, prev) => {
+        const same = Array.isArray(prev) && cur[0] === prev[0] && cur[1] === prev[1]
+        if (same) return
+        syncPendingScrollIndexFromRoute()
+        startScrollRetry()
+      },
+    )
     onBeforeUnmount(stopScrollRetry)
 
     const handlePlaySong = (index: number) => {

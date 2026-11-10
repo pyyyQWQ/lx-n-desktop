@@ -501,6 +501,11 @@ declare global {
       'list.actionButtonsVisible': boolean
 
       /**
+       * 每日推荐自动存歌单（保留 3 个，超出删最旧的）
+       */
+      'list.isAutoSaveDailyRec': boolean
+
+      /**
        * 是否启用下载功能
        */
       'download.enable': boolean
