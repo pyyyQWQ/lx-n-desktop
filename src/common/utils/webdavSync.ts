@@ -114,6 +114,82 @@ export const isFirstSync = (localTimestamp: number): boolean => {
  */
 
 /**
+ * 计算歌单内容指纹（用于判断「本地是否有未上传的改动」）。
+ *
+ * 为什么需要它：
+ *   原实现只比较 `lastSyncTimeLists`（上次与云端交互的时间）与远端 `lastModified`。
+ *   但**本地改动不会更新 lastSyncTimeLists**，于是「本地加了一首歌」这件事
+ *   在时间戳上完全看不出来；若此时远端时间戳更大（例如手机端传过），
+ *   就会被误判成「云端较新」，弹出「下载会覆盖本地」——把用户刚做的改动判成了过时数据。
+ *
+ * 指纹只取「结构」不取「易变字段」：
+ *   · 列表 id / 名称 / 顺序
+ *   · 每首歌的 id 与顺序
+ * 忽略 playCount、更新时间、封面 URL 等元数据，避免仅仅刷新过信息就误判为「内容变了」。
+ *
+ * 该值为纯字符串，不写进远端文件，**对手机端完全透明**。
+ */
+export const computeListsHash = (lists: {
+  defaultList?: any[]
+  loveList?: any[]
+  userList?: any[]
+} | null | undefined): string => {
+  const ids = (arr: any): string =>
+    Array.isArray(arr) ? arr.map(m => String(m?.id ?? '')).join(',') : ''
+
+  const parts: string[] = []
+  parts.push('d:', ids(lists?.defaultList))
+  parts.push('l:', ids(lists?.loveList))
+
+  // 按 id 排序，避免「仅调整歌单顺序」被误判为内容变化
+  const sorted = [...(Array.isArray(lists?.userList) ? lists.userList : [])]
+    .sort((a, b) => String(a?.id ?? '').localeCompare(String(b?.id ?? '')))
+  for (const l of sorted) {
+    parts.push(`u:${String(l?.id ?? '')}:${String(l?.name ?? '')}:${ids(l?.list)}`)
+  }
+  return parts.join('|')
+}
+
+/** 同步决策结果。 */
+export type SyncDecision =
+  /** 本地有未上传改动 → 直接上传，不参与「远端较新」比较 */
+  | 'upload-local-changed'
+  /** 老用户首次升级（无历史指纹）→ 只记录指纹，本次行为与旧版一致 */
+  | 'init-hash'
+  /** 远端没有被比较的意义（时间戳更旧或相等）→ 上传 */
+  | 'upload'
+  /** 远端较新 → 需要用户决定（手动）/ 静默跳过（自动） */
+  | 'remote-newer'
+
+/**
+ * 决定本次同步该做什么。
+ *
+ * 纯函数，不读写设置、不发网络请求，便于完整覆盖各分支。
+ *
+ * @param currentHash 当前本地歌单内容指纹
+ * @param lastHash 上次成功同步时记录的指纹（老用户升级后为空字符串）
+ * @param remoteTimestamp 远端 lastModified
+ * @param localTimestamp 本地记录的上次同步时间
+ */
+export const decideSyncAction = (
+  currentHash: string,
+  lastHash: string,
+  remoteTimestamp: number,
+  localTimestamp: number,
+): SyncDecision => {
+  // 老用户首次升级：指纹为空。此时**不能**当作「本地有改动」，
+  // 否则第一次同步就会强制上传、覆盖手机端数据。
+  // 只记录指纹并沿用旧逻辑，保证升级瞬间行为与旧版完全一致。
+  if (!lastHash) return 'init-hash'
+
+  // 本地内容与上次同步时不同 → 本地确实有未上传的改动，本地优先
+  if (currentHash !== lastHash) return 'upload-local-changed'
+
+  // 内容没变：此时才可以安全地用时间戳判断远端是否有新数据
+  return isRemoteNewer(remoteTimestamp, localTimestamp) ? 'remote-newer' : 'upload'
+}
+
+/**
  * 统计本地列表数据的基本信息，用于同步前的可读提示（不参与写入）。
  */
 export const summarizeListsForSync = (lists: {

@@ -23,6 +23,8 @@ import {
   isRemoteNewer,
   isFirstSync,
   summarizeListsForSync,
+  computeListsHash,
+  decideSyncAction,
 } from '@common/utils/webdavSync'
 import { toRaw } from '@common/utils/vueTools'
 import { LIST_IDS } from '@common/constants'
@@ -83,7 +85,13 @@ const uploadLists = async() => {
     data,
   }
   await uploadFile(getRemoteListsPath(), JSON.stringify(payload))
-  updateSetting({ 'sync.webdav.lastSyncTimeLists': timestamp })
+  updateSetting({
+    'sync.webdav.lastSyncTimeLists': timestamp,
+    // 记录本次上传的内容指纹：下次同步时据此判断「本地是否又被改过」。
+    // 注意必须用**实际上传的 data** 计算，而不是事后重新读一遍列表——
+    // 上传与算哈希之间若用户又改了列表，重读会得到不一致的值，导致下一轮误判。
+    'sync.webdav.lastSyncHash': computeListsHash(data),
+  })
   return timestamp
 }
 /** 把远端列表数据应用到本地（覆盖）。 */
@@ -190,13 +198,61 @@ export const manualDownloadLists = async() => {
 }
 
 /**
- * 主同步流程（手动触发；也可在启动时自动调用一次）。
+ * 处理「远端较新」的情况。
  *
- * 语义（对齐移动端）：
+ * 手动同步：弹窗询问，用户确认后才下载覆盖（高风险操作必须显式同意）。
+ * 自动同步：**不弹窗、不动本地数据**，只记录日志后静默返回。
+ *
+ * 为什么自动同步不能弹窗：
+ *   自动同步由列表变更触发，用户此时正在操作歌单。
+ *   若此时弹出「云端较新，要下载覆盖吗？」，用户一旦点确定，
+ *   刚刚的改动就被云端数据覆盖掉了；点取消则这次同步作废且不重试，
+ *   改动同样不会被上传。两种情况都会让用户以为同步失败。
+ *   因此自动同步遇到冲突时选择「什么都不做」，把决定权留给用户手动触发。
+ *   注意：此分支下**不清除** lastSyncHash，本地改动仍被视为未上传，
+ *   下次手动同步或再次变更时会被正确识别为「本地优先」。
+ */
+const handleRemoteNewer = async(
+  remoteData: { lastModified: number, data: any },
+  remoteTimestamp: number,
+  isManual: boolean,
+): Promise<void> => {
+  if (!isManual) {
+    console.warn(
+      '[WebDAV] 云端比本地记录更新，自动同步已跳过（不覆盖本地，也不上传）。' +
+      '如需处理，请在设置里手动点「立即同步歌单」。',
+    )
+    return
+  }
+  const confirm = await dialog({
+    message: t('setting__sync_webdav_remote_newer_tip'),
+    confirmButtonText: t('setting__sync_webdav_download'),
+    cancelButtonText: t('setting__sync_webdav_cancel'),
+    showCancel: true,
+  })
+  if (!confirm) {
+    toast(t('setting__sync_webdav_cancelled'))
+    return
+  }
+  await applyRemoteLists(remoteData.data)
+  updateSetting({
+    'sync.webdav.lastSyncTimeLists': remoteTimestamp,
+    // 下载覆盖后，本地内容已等于远端，必须同步指纹，
+    // 否则下一轮会误判「本地有未上传改动」而立刻反向上传，形成往返
+    'sync.webdav.lastSyncHash': computeListsHash(remoteData.data),
+  })
+  toast(t('setting__sync_webdav_download_lists_ok'))
+}
+
+/**
+ * 主同步流程（手动触发；也可在启动/列表变更时自动调用）。
+ *
+ * 语义：
  * - 远端无文件 → 上传本地；
  * - 本设备首次同步且远端有数据 → 弹窗让用户选择方向（不可静默覆盖任何一方）；
- * - 远端较新 → 提示并下载覆盖本地（需确认）；
- * - 本地较新/相等 → 上传本地（本地为唯一来源时也直接上传）。
+ * - **本地内容有未上传改动（指纹不同）→ 本地优先，直接上传**；
+ * - 本地无改动且远端较新 → 手动同步时询问；自动同步时静默跳过；
+ * - 本地无改动且远端不新 → 上传本地。
  *
  * 与移动端差异：不做逐操作合并（桌面端无 opQueue），因此所有「覆盖」方向都先确认。
  */
@@ -234,33 +290,48 @@ export const syncLists = async(isManual = false): Promise<void> => {
         toast(t('setting__sync_webdav_upload_lists_ok'))
       } else {
         await applyRemoteLists(remoteData.data)
-        updateSetting({ 'sync.webdav.lastSyncTimeLists': remoteTimestamp })
+        updateSetting({
+          'sync.webdav.lastSyncTimeLists': remoteTimestamp,
+          // 下载后本地内容已与远端一致，指纹同步更新，
+          // 否则下一次同步会误判「本地有未上传改动」而立刻反向上传
+          'sync.webdav.lastSyncHash': computeListsHash(remoteData.data),
+        })
         toast(t('setting__sync_webdav_download_lists_ok'))
       }
       return
     }
 
-    // 3) 远端较新：确认后覆盖本地（防止静默丢失本地改动）
-    if (isRemoteNewer(remoteTimestamp, localTimestamp)) {
-      const confirm = await dialog({
-        message: t('setting__sync_webdav_remote_newer_tip'),
-        confirmButtonText: t('setting__sync_webdav_download'),
-        cancelButtonText: t('setting__sync_webdav_cancel'),
-        showCancel: true,
-      })
-      if (!confirm) {
-        if (isManual) toast(t('setting__sync_webdav_cancelled'))
-        return
+    // 3) 用「内容指纹」判断本地是否真有未上传的改动
+    //
+    // 为什么不能只看时间戳：本地加歌/删歌**不会**更新 lastSyncTimeLists，
+    // 于是「本地刚改过」在时间戳上完全看不出来。若此时远端时间戳更大
+    // （例如手机端传过），就会被误判为「云端较新」并提示"下载会覆盖本地"，
+    // 把用户刚做的改动当成过时数据 —— 这正是实测到的问题。
+    const currentHash = computeListsHash(await getAllListsForSync())
+    const lastHash = String(appSetting['sync.webdav.lastSyncHash'] ?? '')
+    const decision = decideSyncAction(currentHash, lastHash, remoteTimestamp, localTimestamp)
+
+    // 3a) 老用户首次升级：只记录指纹，本次沿用旧的「时间戳比较」逻辑
+    if (decision === 'init-hash') {
+      updateSetting({ 'sync.webdav.lastSyncHash': currentHash })
+      if (isRemoteNewer(remoteTimestamp, localTimestamp)) {
+        await handleRemoteNewer(remoteData, remoteTimestamp, isManual)
+      } else {
+        await uploadLists()
+        if (isManual) toast(t('setting__sync_webdav_upload_lists_ok'))
       }
-      await applyRemoteLists(remoteData.data)
-      updateSetting({ 'sync.webdav.lastSyncTimeLists': remoteTimestamp })
-      toast(t('setting__sync_webdav_download_lists_ok'))
       return
     }
 
-    // 4) 本地为最新（或同时间戳）：上传本地
-    await uploadLists()
-    if (isManual) toast(t('setting__sync_webdav_upload_lists_ok'))
+    // 3b) 本地有未上传改动：本地优先，直接上传
+    if (decision === 'upload-local-changed' || decision === 'upload') {
+      await uploadLists()
+      if (isManual) toast(t('setting__sync_webdav_upload_lists_ok'))
+      return
+    }
+
+    // 3c) 远端较新
+    await handleRemoteNewer(remoteData, remoteTimestamp, isManual)
   } catch (error: any) {
     const msg = describeWebdavError(error)
     console.error('[WebDAV] sync failed:', msg)

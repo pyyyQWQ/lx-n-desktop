@@ -710,6 +710,14 @@ declare global {
        */
       'sync.webdav.lastSyncTimeLists': number
 
+      /**
+       * 上次成功同步时的本地歌单内容指纹（空字符串表示尚未记录，老用户升级后即为空）
+       *
+       * 用途：判断「本地是否有未上传的改动」。
+       * 时间戳无法反映本地改动，因此本地加歌后仍会被误判为「云端较新」。
+       */
+      'sync.webdav.lastSyncHash': string
+
 
       /**
        * 是否启用开放API服务

@@ -14,6 +14,7 @@ const tests = [
   'dailyRecAutoSave.test.mjs',
   'tempListMeta.test.mjs',
   'listFilter.test.mjs',
+  'webdavHash.test.mjs',
   'quality.test.mjs',
   'webdavSync.test.mjs',
 ]

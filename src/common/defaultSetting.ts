@@ -162,6 +162,9 @@ const defaultSetting: LX.AppSetting = {
   'sync.webdav.password': '',
   'sync.webdav.path': '/LX_Music/',
   'sync.webdav.lastSyncTimeLists': 0,
+  // 上次成功同步时的本地歌单内容指纹。空字符串 = 尚未记录（老用户升级后即为此值），
+  // 此时不参与判断，保证升级瞬间行为与旧版一致。
+  'sync.webdav.lastSyncHash': '',
 
   'openAPI.enable': false,
   'openAPI.port': '23330',
