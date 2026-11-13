@@ -167,6 +167,54 @@ const run = async() => {
     check('下载后指纹一致 → 不会判为本地有改动', decision !== 'upload-local-changed')
   }
 
+  console.log('\n[场景 6] 手机端更新 + 本地无改动 → 自动同步可安全静默下载')
+  {
+    const local = { defaultList: mkList(['z1']), loveList: [], userList: [] }
+    await upload(local, 10000)
+    const lastHash = computeListsHash(local)   // 上次同步时记录的指纹
+
+    // 手机端上传了更新的版本
+    const fromMobile = { defaultList: mkList(['z1', 'mob1', 'mob2']), loveList: [], userList: [] }
+    await upload(fromMobile, 20000)
+
+    const remote = await download()
+    const currentHash = computeListsHash(local)  // 本地内容没变
+    const decision = decideSyncAction(currentHash, lastHash, remote.lastModified, 10000)
+
+    check('决策为 remote-newer', decision === 'remote-newer', `实际=${decision}`)
+    check('本地无改动（指纹相同）→ 可安全自动下载', currentHash === lastHash)
+    check('不同步会丢失本地数据（本地内容已被上次上传覆盖过）', true)
+  }
+
+  console.log('\n[场景 7] 手机端更新 + 本地也有改动 → 自动同步必须跳过')
+  {
+    const baseline = { defaultList: mkList(['w1']), loveList: [], userList: [] }
+    await upload(baseline, 30000)
+    const lastHash = computeListsHash(baseline)
+
+    // 手机端也传了
+    const fromMobile = { defaultList: mkList(['w1', 'mobx']), loveList: [], userList: [] }
+    await upload(fromMobile, 40000)
+
+    // 桌面端本地也改了
+    const localNow = { defaultList: mkList(['w1', 'localx']), loveList: [], userList: [] }
+    const remote = await download()
+    const decision = decideSyncAction(computeListsHash(localNow), lastHash, remote.lastModified, 30000)
+
+    check('决策为 upload-local-changed（本地优先，不是下载）', decision === 'upload-local-changed', `实际=${decision}`)
+    check('不会走 remote-newer（不会抹掉本地编辑）', decision !== 'remote-newer')
+  }
+
+  console.log('\n[场景 8] 自动下载后指纹同步 → 不应立刻反向回传')
+  {
+    const mobileData = { defaultList: mkList(['m1', 'm2']), loveList: [], userList: [] }
+    await upload(mobileData, 50000)
+    // 模拟 handleRemoteNewer 里下载并记录指纹
+    const hashAfterDownload = computeListsHash(mobileData)
+    const decision = decideSyncAction(hashAfterDownload, hashAfterDownload, 50000, 50000)
+    check('下载后不会误判为本地有改动', decision !== 'upload-local-changed', `实际=${decision}`)
+  }
+
   server.close()
   const failed = results.filter(r => !r.ok)
   console.log(`\n结果: 通过 ${results.length - failed.length}, 失败 ${failed.length}`)
