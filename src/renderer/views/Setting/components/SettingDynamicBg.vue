@@ -1,5 +1,6 @@
 <template lang="pug">
-dd(:class="$style.block")
+//- 作为「基本设置 → 主题颜色」下面的一小节嵌入，不再自带分隔线
+dd
   h3#dynamic_bg_title {{ $t('setting__dynamic_bg') }}
   div
     p(:class="$style.desc") {{ $t('setting__dynamic_bg_desc') }}

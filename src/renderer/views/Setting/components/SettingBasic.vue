@@ -35,6 +35,10 @@ dd
         span(:class="$style.label") {{ $t('theme_more_btn_show') }}
         svg-icon(name="angle-right-solid" :class="$style.activeIcon")
 
+//- 动态背景 / 自定义背景：与手机版一致，紧跟在主题颜色下面，
+//- 不再单独占用左侧导航的一个页面。
+setting-dynamic-bg
+
 dd
   h3#basic_window_size {{ $t('setting__basic_window_size') }}
   div
@@ -121,6 +125,7 @@ import { dialog } from '@renderer/plugins/Dialog'
 import ThemeSelectorModal from './ThemeSelectorModal.vue'
 import ThemeEditModal from './ThemeEditModal/index.vue'
 import PlayTimeoutModal from './PlayTimeoutModal.vue'
+import SettingDynamicBg from './SettingDynamicBg.vue'
 
 import { appSetting, updateSetting } from '@renderer/store/setting'
 import { getThemes, applyTheme, findTheme, buildBgUrl } from '@renderer/store/utils'
@@ -135,6 +140,7 @@ export default {
     ThemeSelectorModal,
     ThemeEditModal,
     PlayTimeoutModal,
+    SettingDynamicBg,
   },
   setup() {
     const t = useI18n()

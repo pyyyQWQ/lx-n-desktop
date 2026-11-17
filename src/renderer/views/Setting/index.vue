@@ -63,7 +63,6 @@ import SettingSync from './components/SettingSync/index.vue'
 import SettingOpenAPI from './components/SettingOpenAPI.vue'
 import SettingHotKey from './components/SettingHotKey.vue'
 import SettingQualityProbe from './components/SettingQualityProbe.vue'
-import SettingDynamicBg from './components/SettingDynamicBg.vue'
 import SettingNetwork from './components/SettingNetwork.vue'
 import SettingOdc from './components/SettingOdc.vue'
 import SettingBackup from './components/SettingBackup.vue'
@@ -85,7 +84,6 @@ export default {
     SettingOpenAPI,
     SettingHotKey,
     SettingQualityProbe,
-    SettingDynamicBg,
     SettingNetwork,
     SettingOdc,
     SettingBackup,
@@ -112,7 +110,6 @@ export default {
         { id: 'SettingSync', title: t('setting__sync') },
         { id: 'SettingOpenAPI', title: t('setting__open_api') },
         { id: 'SettingQualityProbe', title: t('setting__quality_probe') },
-        { id: 'SettingDynamicBg', title: t('setting__dynamic_bg') },
         { id: 'SettingNetwork', title: t('setting__network') },
         { id: 'SettingOdc', title: t('setting__odc') },
         { id: 'SettingBackup', title: t('setting__backup') },
