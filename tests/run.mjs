@@ -18,6 +18,7 @@ const tests = [
   'qualityProbe.test.mjs',
   'qualityDescent.test.mjs',
   'quality.test.mjs',
+  'backgroundOpacity.test.mjs',
   'webdavSync.test.mjs',
 ]
 

@@ -18,6 +18,7 @@ transition(name="fade")
 import { computed, watch, onBeforeUnmount } from '@common/utils/vueTools'
 import { appSetting } from '@renderer/store/setting'
 import { musicInfo } from '@renderer/store/player/state'
+import { resolveBgMaskOpacity } from '@common/utils/backgroundOpacity'
 
 // CSS 的 blur(Npx) 与移动版 blurRadius(0-100) 量纲不同：
 // 移动版的 18 大致对应桌面端的 18px，直接用即可。
@@ -82,12 +83,36 @@ export default {
     })
 
     const maskStyle = computed(() => {
-      const raw = isCustom.value
-        ? Number(appSetting['theme.customBgOpacity'])
-        : Number(appSetting['theme.picOpacity'])
-      const opacity = Number.isFinite(raw) ? Math.min(Math.max(raw, 0), 100) / 100 : 0.6
+      // 两个滑块方向不同：自定义背景是「图片可见度」，动态背景是「遮罩浓度」。
+      // 换算放在纯函数里，见 common/utils/backgroundOpacity.ts 与对应单测。
+      const opacity = resolveBgMaskOpacity(
+        isCustom.value,
+        Number(appSetting['theme.customBgOpacity']),
+        Number(appSetting['theme.picOpacity']),
+      )
       return { opacity }
     })
+
+    // 把当前底图与遮罩浓度写成 body 上的 CSS 变量。
+    // 播放详情页是覆盖层，自己有不透明容器，没法直接「透」出这一层；
+    // 让它用自己的 .bg 层引用同一张图 + 同一浓度，视觉才能对齐。
+    const syncCssVars = () => {
+      if (typeof document == 'undefined') return
+      const style = document.body.style
+      const url = activeUrl.value
+      if (url) {
+        style.setProperty('--lx-dynamic-bg-image', `url("${url}")`)
+      } else {
+        style.removeProperty('--lx-dynamic-bg-image')
+      }
+      style.setProperty('--lx-dynamic-bg-mask', String(maskStyle.value.opacity))
+      // 模糊半径与放大倍数一起导出：CSS 的 blur 会让边缘变透明，
+      // 必须同步放大把白边挤出可视区，两个值不能分开算，否则详情页会出现白边。
+      const blur = isCustom.value ? 0 : blurPx.value
+      style.setProperty('--lx-dynamic-bg-blur', `${blur}px`)
+      style.setProperty('--lx-dynamic-bg-scale', String(blur > 0 ? 1 + blur / 200 : 1))
+    }
+    watch([activeUrl, maskStyle], syncCssVars, { immediate: true })
 
     // body 上挂 class，让 App.vue 的透明覆盖规则生效
     // （各层默认有纯色底，不透明就无法看到底图）

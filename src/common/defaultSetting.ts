@@ -193,6 +193,9 @@ const defaultSetting: LX.AppSetting = {
   'theme.blur': 18,
   'theme.picOpacity': 60,
   // 自定义背景（独立于主题；设置后优先于动态背景）
+  // 注意 customBgOpacity 的语义与 picOpacity **相反**：
+  // 它是「图片可见度」，100 = 图片完全可见（遮罩全透明），0 = 图片被完全遮住。
+  // 换算见 common/utils/backgroundOpacity.ts，单测 tests/backgroundOpacity.test.mjs。
   'theme.customBgPicPath': '',
   'theme.customBgOpacity': 100,
 
