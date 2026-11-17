@@ -192,6 +192,9 @@ const defaultSetting: LX.AppSetting = {
   'theme.dynamicBg': false,
   'theme.blur': 18,
   'theme.picOpacity': 60,
+  // 自定义背景（独立于主题；设置后优先于动态背景）
+  'theme.customBgPicPath': '',
+  'theme.customBgOpacity': 100,
 
   'odc.isAutoClearSearchInput': false,
   'odc.isAutoClearSearchList': false,

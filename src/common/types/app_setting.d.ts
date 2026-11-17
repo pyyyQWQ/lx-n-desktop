@@ -613,6 +613,18 @@ declare global {
       'theme.picOpacity': number
 
       /**
+       * 自定义背景图路径（空 = 未设置）。
+       * 独立于主题，优先于 theme.dynamicBg：设了自定义背景就用它。
+       */
+      'theme.customBgPicPath': string
+
+      /**
+       * 自定义背景图的不透明度（0-100）。与手机版 theme.picOpacity 区分开，
+       * 手机版两者共用一个滑块，桌面端分开更直观。
+       */
+      'theme.customBgOpacity': number
+
+      /**
        * 亮色主题id
        */
       'theme.lightId': string
