@@ -1,5 +1,5 @@
 <template>
-  <div :class="$style.player">
+  <div class="play-bar-root" :class="$style.player">
     <div :class="$style.progress">
       <common-progress-bar v-if="!isShowPlayerDetail" :class-name="$style.progressBar" :progress="progress" :handle-transition-end="handleTransitionEnd" :is-active-transition="isActiveTransition" />
     </div>

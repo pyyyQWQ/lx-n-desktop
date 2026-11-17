@@ -82,6 +82,17 @@ body.has-dynamic-bg {
     background-color: transparent !important;
     background-image: none !important;
   }
+
+  // 底部播放栏：原本是 #right 的底色 + 播放栏自己的半透明遮罩双层叠加，
+  // 底图基本透不过来。这里统一让路：容器透明，遮罩引用全局遮罩浓度，
+  // 与播放详情页看到的是同一张底图、同一个浓度。
+  #player {
+    background-color: transparent;
+  }
+  .play-bar-root::before {
+    background-color: var(--color-main-background);
+    opacity: var(--lx-dynamic-bg-mask, .9);
+  }
 }
 
 .disableAnimation * {
