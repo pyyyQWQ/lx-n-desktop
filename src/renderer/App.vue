@@ -1,5 +1,6 @@
 <template>
   <div id="container" class="view-container">
+    <LayoutDynamicBackground />
     <layout-aside id="left" />
     <div id="right">
       <layout-toolbar id="toolbar" />
@@ -18,6 +19,7 @@
 
 <script setup>
 import { onMounted } from '@common/utils/vueTools'
+import LayoutDynamicBackground from '@renderer/components/layout/DynamicBackground.vue'
 // import BubbleCursor from '@common/utils/effects/cursor-effects/bubbleCursor'
 // import '@common/utils/effects/snow.min'
 import useApp from '@renderer/core/useApp'
@@ -67,6 +69,19 @@ body {
   transition: background-color @transition-normal;
   background-color: var(--color-content-background);
   box-sizing: border-box;
+}
+
+// 动态背景开启时（body 上挂 .has-dynamic-bg），
+// 把各层原本不透明的背景色让开，否则底图会被完全遮住。
+// 这些规则只覆盖「纯色底」，不改变其它视觉属性。
+body.has-dynamic-bg {
+  #root,
+  #body,
+  .transparent #root,
+  #container {
+    background-color: transparent !important;
+    background-image: none !important;
+  }
 }
 
 .disableAnimation * {

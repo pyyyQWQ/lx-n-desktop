@@ -596,6 +596,23 @@ declare global {
       'theme.id': string
 
       /**
+       * 用当前播放歌曲的封面做全局背景（高斯模糊）。
+       * 与手机版 theme.dynamicBg 语义一致。
+       */
+      'theme.dynamicBg': boolean
+
+      /**
+       * 动态背景的模糊半径（0-100）。与手机版 theme.blur 一致，默认 18。
+       */
+      'theme.blur': number
+
+      /**
+       * 动态背景上遮罩的不透明度（0-100），越高背景越淡、内容越清晰。
+       * 与手机版 theme.picOpacity 一致。
+       */
+      'theme.picOpacity': number
+
+      /**
        * 亮色主题id
        */
       'theme.lightId': string

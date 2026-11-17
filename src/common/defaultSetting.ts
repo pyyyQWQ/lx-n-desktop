@@ -188,6 +188,10 @@ const defaultSetting: LX.AppSetting = {
   'theme.id': 'green',
   'theme.lightId': 'green',
   'theme.darkId': 'black',
+  // 动态背景（用当前播放歌曲的封面做高斯模糊背景），与手机版语义一致
+  'theme.dynamicBg': false,
+  'theme.blur': 18,
+  'theme.picOpacity': 60,
 
   'odc.isAutoClearSearchInput': false,
   'odc.isAutoClearSearchList': false,
