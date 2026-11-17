@@ -1,6 +1,6 @@
 // 检查打包产物里是否真的含有「音质回退链」与「无损下限」逻辑。
 const fs = require('fs')
-const dir = 'C:/Users/PY/Desktop/LX-N-Desktop-NEW/dist'
+const dir = require('path').join(__dirname, '..', 'dist')
 
 const t = fs.readFileSync(dir + '/renderer.js', 'utf8')
 

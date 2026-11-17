@@ -1,8 +1,21 @@
 // 校验：用户音源脚本声明的音质，是否全部能通过主进程白名单（改版音质生效的关键）。
 const fs = require('fs')
 
-const SOURCE = 'C:/Users/PY/Desktop/lx-music-source-paid-1792733355355.js'
-const PRELOAD = 'C:/Users/PY/Desktop/LX-N-Desktop-NEW/src/main/modules/userApi/renderer/preload.js'
+// 音源脚本路径由外部传入（历史上这里写死过桌面绝对路径，迁移后失效）
+// 用法: node tests/qualityWhitelist.check.cjs <音源脚本.js>
+const SOURCE = process.argv[2] || process.env.LX_SOURCE_SCRIPT || ''
+const PRELOAD = require('path').join(__dirname, '..', 'src/main/modules/userApi/renderer/preload.js')
+
+if (!SOURCE) {
+  console.error('缺少音源脚本路径。')
+  console.error('用法: node tests/qualityWhitelist.check.cjs <音源脚本.js>')
+  console.error('   或: set LX_SOURCE_SCRIPT=D:\\path\\to\\source.js && node tests/qualityWhitelist.check.cjs')
+  process.exit(2)
+}
+if (!fs.existsSync(SOURCE)) {
+  console.error(`音源脚本不存在: ${SOURCE}`)
+  process.exit(2)
+}
 
 const src = fs.readFileSync(SOURCE, 'utf8')
 const m = src.match(/const MUSIC_QUALITY = (\{[^}]*\});/)
