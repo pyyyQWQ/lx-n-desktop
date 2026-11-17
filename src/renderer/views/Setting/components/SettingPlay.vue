@@ -33,14 +33,6 @@ dd
   .gap-top
     base-checkbox(id="setting_player_isMediaDeviceRemovedStopPlay" :model-value="appSetting['player.isMediaDeviceRemovedStopPlay']" :label="$t('setting__play_mediaDevice_remove_stop_play')" @update:model-value="updateSetting({'player.isMediaDeviceRemovedStopPlay': $event})")
 
-dd
-  h3#basic_play_quality {{ $t('setting__play_playQuality') }}
-  div
-    base-checkbox.gap-left(
-      v-for="item in playQualityList" :id="`setting_play_quality_${item}`" :key="item"
-      name="setting_play_quality" need :model-value="appSetting['player.playQuality']" :value="item" :label="getPlayQualityLabel(item)"
-      @update:model-value="updateSetting({'player.playQuality': $event})")
-
 dd(:aria-label="$t('setting__play_mediaDevice_title')")
   h3#play_mediaDevice {{ $t('setting__play_mediaDevice') }}
   div
@@ -55,8 +47,6 @@ import { useI18n } from '@renderer/plugins/i18n'
 import { appSetting, saveMediaDeviceId, updateSetting } from '@renderer/store/setting'
 import { setPowerSaveBlocker } from '@renderer/core/player/utils'
 import { isPlay } from '@renderer/store/player/state'
-import { PLAY_QUALITY_OPTIONS } from '@common/constants'
-import { getQualityLabel } from '@common/utils/quality'
 import { isMac } from '@common/utils'
 
 
@@ -64,12 +54,6 @@ export default {
   name: 'SettingPlay',
   setup() {
     const t = useI18n()
-    // 由低到高排列，页面 reverse 后呈现「高 → 低」，与原版一致。
-    // 改版新增 hires / atmos / master 三档，共 7 项。
-    const playQualityList = [...PLAY_QUALITY_OPTIONS].reverse()
-
-    const getPlayQualityLabel = (quality) => getQualityLabel(quality, t)
-
     const mediaDevices = ref([])
     const getMediaDevice = async() => {
       const devices = await navigator.mediaDevices.enumerateDevices()
@@ -152,8 +136,6 @@ export default {
       handleUpdatePowerSaveBlocker,
       isMaxOutputChannelCount,
       handleUpdateMaxOutputChannelCount,
-      playQualityList,
-      getPlayQualityLabel,
       isMac,
     }
   },
