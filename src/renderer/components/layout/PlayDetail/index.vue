@@ -1,7 +1,7 @@
 <template lang="pug">
 transition(enter-active-class="animated slideInRight" leave-active-class="animated slideOutDown" @after-enter="handleAfterEnter" @after-leave="handleAfterLeave")
-  div(v-if="isShowPlayerDetail" :class="[$style.container, { fullscreen: isFullscreen }]" @contextmenu="handleContextMenu")
-    div(:class="$style.bg")
+  div.play-detail-root(v-if="isShowPlayerDetail" :class="[$style.container, { fullscreen: isFullscreen }]" @contextmenu="handleContextMenu")
+    div.play-detail-bg(:class="$style.bg")
     //- div(:class="$style.bg" :style="bgStyle")
     //- div(:class="$style.bg2")
     ControlBtnsLeftHeader(v-if="appSetting['common.controlBtnPosition'] == 'left'")
@@ -207,6 +207,34 @@ export default {
     background-color: var(--color-main-background);
   }
 }
+// 全局动态背景 / 自定义背景开启时（body 上挂了 .has-dynamic-bg）：
+// 详情页原本铺主题自带的 background-image，会把全局底图整块盖掉，
+// 表现就像「设了背景但详情页没反应」。
+// 这里把这一层的图换成 DynamicBackground 写进 body 的 CSS 变量（同一张图），
+// 遮罩浓度也引用同一个变量 —— 两层看到的是同一张底图、同一个浓度。
+// 容器本身保持不透明：详情页是覆盖层，透明会让背后的路由内容漏出来。
+// 用字面类名而不是 $style.xxx：:global 里的选择器拿不到 CSS Modules 的 hash 名。
+// 必须用裸 :global 块：:global(body.x) { .y {} } 里的 .y 仍会被 hash。
+:global {
+  body.has-dynamic-bg .play-detail-bg {
+    background-image: var(--lx-dynamic-bg-image, none);
+    background-size: cover;
+    background-position: center;
+    opacity: 1;
+    // 与全局层同一套模糊；放大倍数由 DynamicBackground 一起算出，
+    // 否则 blur 的透明边缘会在四周边框露白。
+    filter: blur(var(--lx-dynamic-bg-blur, 0px));
+    transform: scale(var(--lx-dynamic-bg-scale, 1));
+  }
+  body.has-dynamic-bg .play-detail-bg::before {
+    background-color: transparent;
+  }
+  body.has-dynamic-bg .play-detail-bg::after {
+    background-color: var(--color-main-background);
+    opacity: var(--lx-dynamic-bg-mask, .6);
+  }
+}
+
 // .bg2 {
 //   position: absolute;
 //   width: 100%;
