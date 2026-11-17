@@ -166,6 +166,20 @@ const defaultSetting: LX.AppSetting = {
   // 此时不参与判断，保证升级瞬间行为与旧版一致。
   'sync.webdav.lastSyncHash': '',
 
+  // 音源质量检测：公用的样本歌，格式「歌名 - 歌手」。
+  // 用字符串而非对象：主进程 mergeSetting 只接受原始类型。
+  'qualityProbe.sample': '晴天 - 周杰伦',
+
+  // 各平台独立的优先播放音质；空字符串表示未设置，回退到 player.playQuality。
+  // 用扁平键而非对象：主进程 mergeSetting 只接受原始类型。
+  'player.playQuality.wy': '',
+  'player.playQuality.tx': '',
+  'player.playQuality.kg': '',
+  'player.playQuality.kw': '',
+  'player.playQuality.mg': '',
+  'qualityProbe.timeoutMs': 15000,
+  'qualityProbe.intervalMs': 300,
+
   'openAPI.enable': false,
   'openAPI.port': '23330',
   'openAPI.bindLan': false,

@@ -718,6 +718,38 @@ declare global {
        */
       'sync.webdav.lastSyncHash': string
 
+      /**
+       * 音源质量检测：公用的样本歌，格式 `歌名 - 歌手`。
+       *
+       * 用字符串而非对象：主进程 mergeSetting 只接受原始类型，
+       * 对象会被静默丢弃（不保存也不广播）。
+       */
+      'qualityProbe.sample': string
+
+      /**
+       * 各平台各自的「优先播放音质」。
+       * 未设置的平台（空字符串）回退到全局 player.playQuality。
+       *
+       * 为什么用扁平键而不是一个对象：主进程的 mergeSetting 只接受
+       * 原始类型（string/number/boolean/null），对象会被直接跳过、
+       * 既不持久化也不广播，界面就永远看不到变化。
+       */
+      'player.playQuality.wy': LX.Quality | ''
+      'player.playQuality.tx': LX.Quality | ''
+      'player.playQuality.kg': LX.Quality | ''
+      'player.playQuality.kw': LX.Quality | ''
+      'player.playQuality.mg': LX.Quality | ''
+
+      /**
+       * 音源质量检测：单档探测超时（毫秒）。
+       */
+      'qualityProbe.timeoutMs': number
+
+      /**
+       * 音源质量检测：档位之间的间隔（毫秒），避免被音源限流。
+       */
+      'qualityProbe.intervalMs': number
+
 
       /**
        * 是否启用开放API服务
