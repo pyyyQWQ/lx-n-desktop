@@ -83,15 +83,17 @@ body.has-dynamic-bg {
     background-image: none !important;
   }
 
-  // 底部播放栏：原本是 #right 的底色 + 播放栏自己的半透明遮罩双层叠加，
-  // 底图基本透不过来。这里统一让路：容器透明，遮罩引用全局遮罩浓度，
-  // 与播放详情页看到的是同一张底图、同一个浓度。
+  // 底部播放栏：内容区只有 DynamicBackground 遮罩 + #right 底色两层，
+  // 而播放栏自己还额外铺了一层 ::before 遮罩，于是同一浓度下播放栏更厚，
+  // 浓度越接近 100 这块和周围的色差越明显。
+  // 这里把播放栏自带那层直接撤掉，让两处层级完全一致：
+  // 浓度只由 DynamicBackground 的遮罩统一控制。
   #player {
     background-color: transparent;
   }
   .play-bar-root::before {
-    background-color: var(--color-main-background);
-    opacity: var(--lx-dynamic-bg-mask, .9);
+    background-color: transparent;
+    opacity: 0;
   }
 }
 
