@@ -15,6 +15,8 @@ const tests = [
   'tempListMeta.test.mjs',
   'listFilter.test.mjs',
   'webdavHash.test.mjs',
+  'qualityProbe.test.mjs',
+  'qualityDescent.test.mjs',
   'quality.test.mjs',
   'webdavSync.test.mjs',
 ]
