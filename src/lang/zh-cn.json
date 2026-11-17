@@ -211,7 +211,7 @@
   "setting__dynamic_bg_enable": "启用动态背景",
   "setting__dynamic_bg_blur": "模糊度",
   "setting__dynamic_bg_opacity": "遮罩浓度",
-  "setting__quality_probe_play_quality_desc": "各平台优先播放音质。点选即生效；未单独设置的平台沿用上面的全局设置。",
+  "setting__quality_probe_play_quality_desc": "各平台优先播放音质，点选即生效。",
   "setting__quality_probe_title": "音质档位检测",
   "setting__quality_probe_desc": "用样本歌逐档探测当前音源的真实可用性。只读取响应头与少量数据，不下载整首歌曲。结果仅代表本次样本，不代表其它歌曲。",
   "setting__quality_probe_current": "当前音源：",

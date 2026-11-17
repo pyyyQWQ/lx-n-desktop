@@ -211,7 +211,7 @@
   "setting__dynamic_bg_enable": "동적 배경 사용",
   "setting__dynamic_bg_blur": "흐림 정도",
   "setting__dynamic_bg_opacity": "마스크 농도",
-  "setting__quality_probe_play_quality_desc": "플랫폼별 우선 재생 음질입니다. 선택 즉시 적용되며, 설정하지 않은 플랫폼은 위의 전역 설정을 따릅니다.",
+  "setting__quality_probe_play_quality_desc": "플랫폼별 우선 재생 음질입니다. 선택 즉시 적용됩니다.",
   "setting__quality_probe_title": "음질 등급 검사",
   "setting__quality_probe_desc": "샘플 곡으로 현재 음원의 실제 사용 가능 여부를 등급별로 검사합니다. 응답 헤더와 소량의 데이터만 읽고 곡 전체를 다운로드하지 않습니다. 결과는 이번 샘플에만 해당합니다.",
   "setting__quality_probe_current": "현재 음원:",

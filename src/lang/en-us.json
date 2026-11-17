@@ -211,7 +211,7 @@
   "setting__dynamic_bg_enable": "Enable dynamic background",
   "setting__dynamic_bg_blur": "Blur",
   "setting__dynamic_bg_opacity": "Mask opacity",
-  "setting__quality_probe_play_quality_desc": "Preferred playback quality per platform. Changes apply immediately; platforms not set here use the global setting above.",
+  "setting__quality_probe_play_quality_desc": "Preferred playback quality per platform. Changes apply immediately.",
   "setting__quality_probe_title": "Quality Tier Check",
   "setting__quality_probe_desc": "Probe the current source tier by tier with a sample song. Only headers and a small amount of data are read; full tracks are never downloaded. Results reflect this sample only, not every song.",
   "setting__quality_probe_current": "Current source:",
