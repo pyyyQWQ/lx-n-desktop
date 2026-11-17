@@ -7,10 +7,39 @@
 
 ## 0. ⚡ 当前状态速览（新对话请先读这一节）
 
-> 最后更新：2026-11-10 21:40（第 31 轮：右击封面定位 - 来源 id 持久化）
+> 最后更新：**2026-11-18 00:20（第 34 轮：音源音质体系 + 检测 + 动态/自定义背景）**
 > 本节是给"接手的 AI"看的精简入口。**读完本节即可直接干活**，后面各节是历史过程记录，按需查阅即可。
 
-> 🟢 **2026-11-10 第 31 轮现状（以本段为准，优先于下方 10-26 的旧描述）**
+> 🚨 **2026-11-17 项目已迁到 E 盘，所有旧路径失效**
+> | 项 | 新值 |
+> |---|---|
+> | 项目目录 | `E:\dsh\workspace\LX-N-Desktop-NEW` |
+> | DSH_HOME | `E:\dsh-home` |
+> | node | `E:\dsh-home\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe` |
+> | pnpm | `...\dependencies\pnpm\bin\pnpm.mjs` |
+> | 手机版源码 | `E:\dsh\workspace\LX-n-desktop\worktrees\netease_main` |
+>
+> node **不在 PATH**，必须显式指定：
+> ```bash
+> export PATH="/e/dsh-home/dsh-runtimes/dsh-primary-runtime/dependencies/node/bin:$PATH"
+> P="/e/dsh-home/dsh-runtimes/dsh-primary-runtime/dependencies/pnpm/bin/pnpm.mjs"
+> node "$P" build && node "$P" test
+> ```
+> 迁移时 `node_modules` 软链接曾全部断裂（目录存在但为空），
+> 已用 `pnpm install --config.confirmModulesPurge=false` 重建。
+
+> 🟢 **2026-11-18 第 34 轮现状（以本段为准，优先于下方任何旧描述）**
+> - 版本 **1.3.3**（已发布）；本轮 11 个提交**未推送**，本地领先远端 10 个。
+> - 本轮完成：**各平台真实音质档位表**（网易云6/QQ8/酷狗6/酷我4/咪咕4）、
+>   **音源音质档位检测**（全档/快速）、**优先播放音质按平台设置**（含降级修正）、
+>   **全局动态背景**（封面高斯模糊）、**自定义背景**。
+> - `pnpm test` 现为 **469 断言**。
+> - 🔴 **主进程 `mergeSetting` 只接受原始类型**（string/number/boolean/null），
+>   对象型设置会被**静默丢弃**（不保存、不广播、界面不更新）。
+>   所有设置必须用扁平键，见 §44.6。
+> - 详见 **§44**（本轮完整记录，含 4 个踩坑与验证状态）。
+
+> 🟡 **2026-11-10 第 31 轮现状（历史，已被上方覆盖）**
 > - 版本已到 **v1.2.0**（commit `1911857` docs: 记录 v1.2.0 发布结果），但**远端 GitHub 仍未推送**。
 > - 已完成并实测：多音质选择、音质自动回退、下载高音质、心形一键喜欢（4 次迭代定稿）、
 >   列表变更自动同步、每日推荐自动存歌单、右击封面定位修复（§40 `expose` + §41 持久化）。
@@ -3152,3 +3181,270 @@ prod 构建的 `ts-loader` 会拦下这类错误，而 dev 的 overlay 也会显
 
 ### 43.5 提交说明
 本节与提示词归档单独提交为 `docs:` 提交，位于 tag `v1.3.0` 之后，不改变已发布的源码；与 v1.2.0（§33.5 第 5 点）的处理方式一致。
+---
+
+## 44. 音源音质体系 + 检测 + 动态/自定义背景（2026-11-17 第 34 轮）
+
+### 44.1 本轮范围（一次做了 5 件事）
+
+1. **各平台真实音质档位表**（不再用一套通用标签）
+2. **音源音质档位检测**（全档/快速，串行探测，只读响应头）
+3. **优先播放音质改为按平台设置**（含降级修正）
+4. **全局动态背景**（播放封面高斯模糊）
+5. **自定义背景**（选图片 / 清除 / 不透明度）
+
+### 44.2 关键背景：项目已迁到 E 盘
+
+**路径变了**，旧文档里的 `C:\Users\PY\Desktop\LX-N-Desktop-NEW` 全部失效：
+
+| 项 | 新值 |
+|---|---|
+| 项目 | `E:\dsh\workspace\LX-N-Desktop-NEW` |
+| DSH_HOME | `E:\dsh-home` |
+| node | `E:\dsh-home\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe` |
+| pnpm | `...\dependencies\pnpm\bin\pnpm.mjs` |
+| 手机版源码 | `E:\dsh\workspace\LX-n-desktop\worktrees\netease_main` |
+
+> ⚠️ 迁移时 `node_modules` 的所有软链接断裂（目录存在但为空），
+> 已用 `pnpm install --config.confirmModulesPurge=false` 重建。
+> 若再遇到 `Cannot find module 'chalk'` 一类错误，就是这个原因。
+
+**构建命令**（node 不在 PATH，必须显式指定）：
+
+```bash
+export PATH="/e/dsh-home/dsh-runtimes/dsh-primary-runtime/dependencies/node/bin:$PATH"
+P="/e/dsh-home/dsh-runtimes/dsh-primary-runtime/dependencies/pnpm/bin/pnpm.mjs"
+node "$P" build
+node "$P" test
+```
+
+### 44.3 各平台真实音质档位（核心数据）
+
+新增 `src/common/utils/qualityLabelBySource.ts`。数据来源三方交叉验证：
+GZ_Music 2.2.2 检测截图 + 两个付费音源的 MUSIC_QUALITY 表 + 星海音源 v2.3.19。
+
+| 平台 | 档位数 | 档位与名称（高→低） |
+|---|---|---|
+| 网易云 | 6 | 超清母带 / 高清臻音 / 高解析 Hi-Res / 无损 SQ / 极高 HQ / 标准 128K |
+| QQ音乐 | 8 | 大师音质 / 全景声 2.0 / 全景声 / 高解析 Hi-Res / 无损 SQ / 极高 HQ / 192K / 标准 128K |
+| 酷狗 | 6 | 大师音质 / 全景声 / 高解析 Hi-Res / 无损 SQ / 极高 HQ / 标准 128K |
+| 酷我 | 4 | 高解析 Hi-Res / 无损 SQ / 极高 HQ / 标准 128K |
+| 咪咕 | 4 | 高解析 Hi-Res / 无损 SQ / 极高 HQ / 标准 128K |
+
+**关键差异（都不统一）**：网易云没有 atmos_plus；酷我/咪咕没有 master 与 atmos；QQ 独有 192k。
+
+导出的 API：
+- `QUALITY_LABELS_BY_SOURCE` 平台→档位→显示名
+- `getQualityKeysBySource(source)` 该平台档位数组（高→低）
+- `getQualityLabelBySource(source, quality, t)` 取显示名
+- `descendQuality(preferred, available, order)` 降级核心（纯函数）
+
+### 44.4 修掉的两个降级缺陷
+
+**缺陷 A：全局 QUALITY_RANK 缺 192k**
+
+原实现沿 `QUALITY_RANK = [master, atmos_plus, atmos, hires, flac, 320k, 128k]` 降级。
+QQ 用户选 320k 而该曲只有 192k 时，**跳过 192k 直接掉到 128k**。
+
+**缺陷 B：跨平台切换掉到最低档**
+
+用户在 QQ 选 master 后切到酷我（无 master），原逻辑一路降到底（320k）。
+现改为取该平台支持的最高可用档位（hires）。
+
+修复方式：降级改为按**各平台自己的档位顺序**。
+`tests/qualityDescent.test.mjs` 27 条断言覆盖。
+
+### 44.5 音源音质档位检测
+
+参照 GZ_Music 2.2.2 的 `LxQualityTestPlanKt` / `LxPluginTester`。
+
+**原理**：音源接口没有「档位可用性清单」，只能拿样本歌逐档要播放地址，
+看接口给不给。
+
+| 文件 | 职责 |
+|---|---|
+| `common/utils/qualityProbe.ts` | 纯逻辑：计划生成、状态判定、汇总、格式化 |
+| `renderer/core/qualityProbe.ts` | 执行：串行探测、只读响应头、样本解析 |
+| `views/Setting/components/SettingQualityProbe.vue` | UI |
+
+**六个状态**：`pass` / `unverified` / `fail` / `timeout` / `needs-manual` / `undeclared`
+
+> **`unverified` 与 `fail` 必须分开**：样本歌本身可能没有母带版权，
+> 返回「200 但无 URL」不代表平台不支持，判成 fail 会误报。
+
+**检测计划固定列出全部 5 个平台**，每个平台用它自己的档位集合，
+不因未声明而隐藏（`undeclared` 灰显区分）。
+
+**为什么不复用 `request.js`**：它的实现是 `resp.body = resp.raw.toString()`，
+会把整个响应读进内存，探测一首 175MB 母带就真下载 175MB。
+因此用 `fetch` + `Range: bytes=0-65535`，拿到 content-length 后立即 cancel。
+
+**策略**：逐档串行、间隔 300ms、单档超时 15s、跳过 HLS（m3u8 标 needs-manual）。
+
+**样本歌解析**：音源取链用 `songmid` 不是歌名。用户只填「晴天」时
+先用该平台自己的搜索接口解析出真实 ID，否则插件抛「音乐 ID 不存在」。
+
+### 44.6 🔴 主进程 mergeSetting 只接受原始类型（重大坑）
+
+`src/main/utils/index.ts:68-85`：
+
+```ts
+const primitiveType = ['string', 'boolean', 'number']
+const checkPrimitiveType = (val) => val === null || primitiveType.includes(typeof val)
+
+if (!isPrimitive || ...) continue    // 对象直接跳过
+```
+
+**对象型设置会被静默丢弃**：既不持久化、也不广播 `on_config_change`，
+渲染进程 `appSetting` 永不更新，界面表现为「点了没反应」。
+
+**因此所有新设置必须用扁平字符串键**：
+
+```ts
+// ❌ 会被丢弃
+'player.playQualityBySource': { wy: 'master' }
+
+// ✅ 正常
+'player.playQuality.wy': 'master'
+'player.playQuality.tx': ''
+...
+```
+
+空字符串表示「未设置」，回退全局 `player.playQuality`。
+
+> 项目原有设置**一个对象型的都没有**，这是隐藏约束。
+
+### 44.7 本轮踩过的 4 个坑
+
+**① CSS Modules 裸类名不生效**
+
+文件是 `<style lang="less" module>`，类名会被编译成 hash（`.entryLine` → `.XoMxn`）。
+模板写裸类名 `div.entryLine` 永远匹配不上，**样式从头到尾没生效**。
+必须用 `:class="$style.entryLine"`。
+
+**② setup 的 return 漏了变量 → 白屏**
+
+迁移模板时忘了把 `appSetting` / `updateSetting` 加进 `return`，
+模板读 undefined 直接崩：`Cannot read properties of undefined (reading 'common.apiSource')`。
+
+**③ `v-model:show` vs `v-model`**
+
+`UserApiModal` 的 prop 是 `modelValue`（用 `v-model`），
+但项目里其他 modal（如 `ThemeSelectorModal`）用 `v-model:show`。
+混用会导致弹窗关不掉（`$emit('update:modelValue')` 没人接）。
+
+**④ `ref(null)` 需要显式泛型**
+
+`ref(null)` 被推断成 `Ref<null>`，后续赋值 number 报 `TS2322`。
+应为 `ref<number | null>(null)`。
+
+### 44.8 动态背景
+
+移植自手机版 `PageContent.tsx`：
+
+```
+播放封面 → 铺满 → 高斯模糊 → 盖半透明遮罩
+```
+
+| 设置项 | 默认 | 说明 |
+|---|---|---|
+| `theme.dynamicBg` | false | 开关 |
+| `theme.blur` | 18 | 模糊半径 0-100 |
+| `theme.picOpacity` | 60 | 遮罩不透明度 0-100 |
+
+**桌面端两个必要适配**：
+
+1. **CSS blur 泛白**：`filter: blur()` 会让边缘向外扩散变透明，
+   四周露白边。需放大 `1 + blur/200`（半径 18 时约 1.09）把白边挤出视区。
+
+2. **各层背景色遮挡**：`#root` / `#body` / `#container` 都有不透明背景色，
+   底图会被完全遮住。组件生效时给 `body` 挂 `has-dynamic-bg`，
+   `App.vue` 据此把这些层的纯色底让开（只覆盖背景，不动其它属性）。
+
+### 44.9 自定义背景
+
+参照手机版 `CustomBg.tsx`。
+
+| 设置项 | 默认 | 说明 |
+|---|---|---|
+| `theme.customBgPicPath` | '' | 图片绝对路径 |
+| `theme.customBgOpacity` | 100 | 不透明度 0-100 |
+
+**优先级**：自定义背景 > 动态背景 > 无
+
+**与动态背景的差异**：自定义背景**不做模糊**（用户自己的图，模糊反而看不清）；
+图片存**绝对路径不拷贝**（全局背景只需本机可用，主题编辑里拷贝是为了可导出/同步）。
+
+### 44.10 设置页结构变化
+
+**新增页**：`设置 → 音源音质`（原「音源检测」改名）
+
+```
+音源音质
+├── 音源（内置 + 自定义，含连接状态）
+├── 优先播放音质（按平台独立，各平台档位不同 6/8/6/4/4）
+└── 音质档位检测（快速/全档 + 逐档明细）
+```
+
+**新增页**：`设置 → 动态背景`（含动态背景 + 自定义背景两块）
+
+**迁出**：
+- 基本设置 → 音源选择（移到音源音质页）
+- 播放设置 → 优先播放的音质（移到音源音质页）
+
+### 44.11 验证状态
+
+| 项 | 结果 |
+|---|---|
+| `pnpm test` | ✅ **全部通过**（原 387 + qualityProbe 55 + qualityDescent 27 = 469 断言） |
+| `pnpm build` | ✅ 4 目标全 success |
+| 音质按钮点击 → 设置写入 → 高亮 | ✅ CDP 实测（点「超清母带」→ `wy=master`，点「标准 128K」→ `wy=128k`） |
+| 各平台档位表 | ✅ 实测 6/8/6/4/4 |
+| 降级逻辑 | ✅ 27 条单测，含 192k 不跳过、跨平台取最高可用 |
+| 动态背景 | ✅ CDP 实测 `filter: blur(18px)`、`scale(1.09)`、背景 URL 等于封面、`#root` 已透明 |
+| 主题切换 | ✅ 实测切到 black 后 `--color-main-background` 变 `rgba(19,19,19,0.9)`，播放栏 `:before` 同步变深 |
+
+### 44.12 未验证 / 待确认
+
+- ⚠️ **自定义背景实机效果未验证**（选图后背景是否显示、不透明度是否生效）
+- ⚠️ **用户反馈「播放详情页不跟随主题」**：我实测主题变量与播放栏
+  `:before` 均正确跟随（切 black 后变深色）。判断是 CDP 测试污染了主题状态
+  （反复切主题后 `applyTheme` 还原不完整）。**需重启 dev 后手动切一次主题确认**。
+- ⚠️ 音质检测的**实机全档跑一次**未做（dev 环境音源可用性不定）
+
+### 44.13 当前 Git 状态
+
+```
+本地 HEAD: 8abc252
+领先远端: 10 个提交（未推送）
+工作区: 干净
+```
+
+本轮 11 个提交：
+```
+8abc252 feat: 自定义背景（选图片 / 清除 / 不透明度）
+c0b3678 feat: 全局动态背景（用播放封面做高斯模糊底图）
+ea134b8 feat: 音源音质页的多语言文案
+28b5f5d refactor: 音源与音质设置从原位置迁出
+4942fdf feat: 新增「音源音质」设置页
+68fe0f0 feat: 播放链路按平台取优先音质
+1d59ab4 feat: 新增音源音质相关设置项（按平台扁平键）
+2b6950c feat: 音源音质档位检测 —— 执行层（串行探测 + 只读响应头）
+5285d8a feat: 音源音质档位检测 —— 纯逻辑层
+6117aad feat: 各平台真实音质档位表 + 按平台顺序的播放降级
+512cc4e fix: 测试脚本去掉写死的桌面路径，改用相对定位
+```
+
+### 44.14 下一步
+
+1. **重启 dev 验证**：主题切换是否正常（第 44.12 条）
+2. **验证自定义背景**：选一张图看效果
+3. **实机跑一次全档检测**：确认 5 平台 × 各自档位的结果展示
+4. 确认无误后**推送 + 打包发版**（建议 1.4.0，功能新增）
+
+### 44.15 一处已知遗留
+
+「全局 `player.playQuality`」现在**没有 UI 可改**了——
+原播放设置里的 7 个单选已移除，它只作为「平台未单独设置时的回退值」存在。
+新用户看到的各平台高亮都来自这个默认值（`128k`），点了才存平台专属值。
+若需要可编辑的全局值，得再开一个入口。
