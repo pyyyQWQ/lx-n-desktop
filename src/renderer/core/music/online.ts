@@ -7,7 +7,7 @@ import {
 } from '@renderer/utils/ipc'
 import {
   buildLyricInfo,
-  getPlayQuality,
+  resolvePlayQuality,
   handleGetOnlineLyricInfo,
   handleGetOnlineMusicUrl,
   handleGetOnlinePicUrl,
@@ -51,7 +51,7 @@ export const getMusicUrl = async({ musicInfo, quality, isRefresh, allowToggleSou
 
   //   // return Promise.reject(new Error('该歌曲没有可播放的音频'))
   // }
-  const targetQuality = quality ?? getPlayQuality(appSetting['player.playQuality'], musicInfo)
+  const targetQuality = quality ?? resolvePlayQuality(musicInfo)
   const cachedUrl = await getStoreMusicUrl(musicInfo, targetQuality)
   if (cachedUrl && !isRefresh) return cachedUrl
 

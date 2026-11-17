@@ -1,4 +1,5 @@
 import { assertApiSupport } from '@renderer/store/utils'
+import { getQualityKeysBySource, descendQuality } from '@common/utils/qualityLabelBySource'
 import musicSdk from '@renderer/utils/musicSdk'
 import {
   // getOtherSource as getOtherSourceFromStore,
@@ -229,23 +230,57 @@ export type TryQualityType = typeof TRY_QUALITYS_LIST[number]
 export const QUALITY_RANK: readonly LX.Quality[] = ['master', 'atmos_plus', 'atmos', 'hires', 'flac', '320k', '128k']
 
 /**
+ * 取某平台从高到低的档位顺序。
+ * 平台没有专属表时退回全局 QUALITY_RANK。
+ */
+const getDescentOrder = (source: string): readonly string[] => {
+  const own = getQualityKeysBySource(source)
+  return own.length ? own : QUALITY_RANK
+}
+
+/**
  * 选出实际播放音质：从用户偏好档位开始，沿 QUALITY_RANK 向下找第一个「这首歌确实有」的档位。
  *
  * 与移动改良版 `getPlayQuality` 语义一致：**只依据歌曲自身的 `meta._qualitys`**，
  * 不额外依赖音源声明的 qualityList。
  */
-export const getPlayQuality = (highQuality: LX.Quality, musicInfo: LX.Music.MusicInfoOnline): LX.Quality => {
-  const availableQualities = musicInfo.meta._qualitys
-  const startIndex = QUALITY_RANK.indexOf(highQuality)
-  // 偏好值不在榜单内（如无效值 / 本地音质）时，从最高档开始找
-  const searchIndex = startIndex === -1 ? 0 : startIndex
-
-  for (let i = searchIndex; i < QUALITY_RANK.length; i++) {
-    const quality = QUALITY_RANK[i]
-    if (availableQualities[quality]) return quality
-  }
-  return '128k'
+/**
+ * 取某个平台「用户设定的优先音质」。
+ *
+ * 优先用平台专属设置（player.playQuality.<source>），
+ * 该平台未设置时回退到全局 player.playQuality。
+ */
+export const getPreferredQuality = (source: string): LX.Quality => {
+  // 平台专属设置存在扁平键里（'player.playQuality.wy' 等），
+  // 空字符串表示未设置，回退到全局值。
+  const key = `player.playQuality.${source}` as keyof LX.AppSetting
+  const perSource = appSetting[key]
+  if (typeof perSource == 'string' && perSource) return perSource as LX.Quality
+  return appSetting['player.playQuality']
 }
+
+/**
+ * 取某平台「从高到低」的档位顺序，用于降级。
+ *
+ * 优先用该平台自己的档位表（getQualityKeysBySource）；
+ * 平台没有专属表时退回全局 QUALITY_RANK。
+ *
+ * 为什么必须按平台：各平台档位集合不同，
+ * 例如 QQ 有 192k 而全局 RANK 没有 —— 用全局 RANK 降级会跳过 192k 直接掉到 128k。
+ */
+export const getPlayQuality = (highQuality: LX.Quality, musicInfo: LX.Music.MusicInfoOnline): LX.Quality => {
+  const order = getDescentOrder(musicInfo.source)
+  return descendQuality(highQuality, musicInfo.meta._qualitys as unknown as Record<string, unknown>, order) as LX.Quality
+}
+
+/**
+ * 结合平台偏好与单曲实际可用档位，算出最终播放音质。
+ * 这是播放链路应当使用的入口（替代直接调 getPlayQuality）。
+ */
+export const resolvePlayQuality = (musicInfo: LX.Music.MusicInfoOnline): LX.Quality => {
+  return getPlayQuality(getPreferredQuality(musicInfo.source), musicInfo)
+}
+
 
 export const getOnlineOtherSourceMusicUrl = async({ musicInfos, quality, onToggleSource, isRefresh, retryedSource = [] }: {
   musicInfos: LX.Music.MusicInfoOnline[]
@@ -268,7 +303,7 @@ export const getOnlineOtherSourceMusicUrl = async({ musicInfos, quality, onToggl
     if (retryedSource.includes(musicInfo.source)) continue
     retryedSource.push(musicInfo.source)
     if (!assertApiSupport(musicInfo.source)) continue
-    itemQuality = quality ?? getPlayQuality(appSetting['player.playQuality'], musicInfo)
+    itemQuality = quality ?? resolvePlayQuality(musicInfo)
     // 换源时需要确认这首歌在该源下确实有这个音质（与手机版一致：只看歌曲自身的 _qualitys）
     if (!musicInfo.meta._qualitys?.[itemQuality]) continue
 
@@ -366,7 +401,7 @@ export const handleGetOnlineMusicUrl = async({ musicInfo, quality, onToggleSourc
 }> => {
   if (!await window.lx.apiInitPromise[0]) throw new Error('source init failed')
   // console.log(musicInfo.source)
-  const targetQuality = quality ?? getPlayQuality(appSetting['player.playQuality'], musicInfo)
+  const targetQuality = quality ?? resolvePlayQuality(musicInfo)
 
   let reqPromise
   try {
