@@ -10,10 +10,15 @@
 
 | 文件 | 大小 |
 | --- | ---: |
-| `lx-netease-music-desktop-v1.4.0-x64-Setup.exe` | 见 `SHA256SUMS.txt` |
-| `lx-netease-music-desktop-v1.4.0-x64-portable.exe` | 见 `SHA256SUMS.txt` |
+| `lx-netease-music-desktop-v1.4.0-x64-Setup.exe` | 122277425 字节（116.61 MiB） |
+| `lx-netease-music-desktop-v1.4.0-x64-portable.exe` | 110591136 字节（105.47 MiB） |
 
-校验值以随附的 `SHA256SUMS.txt` 为准。
+校验值以随附的 `SHA256SUMS.txt` 为准：
+
+```
+456370ee52ac83a9c2e76d57efb06a27ef0726e68c50e3a8de2ccb2628900d52  lx-netease-music-desktop-v1.4.0-x64-Setup.exe
+f0bdf38aed8b04378e230850261871740f591a61a0d7a661631571148e017836  lx-netease-music-desktop-v1.4.0-x64-portable.exe
+```
 
 安装版适合普通安装使用；便携版无需安装，用户数据保存在便携 exe 同目录的 `userData` 中，所在目录必须可写。
 
